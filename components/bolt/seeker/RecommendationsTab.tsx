@@ -22,7 +22,7 @@ export default function RecommendationsTab() {
   const { data, error, isLoading } = useRecommendations(user?.id);
   const deleteRecommendation = useDeleteRecommendation();
   const queryClient = useQueryClient();
-  const recommendations = (data?.items as any[]) || [];
+  const recommendations = ((data as any)?.items || []) as any[];
 
   // Debug logging
   console.log('RecommendationsTab - user:', user?.id, 'data:', data, 'error:', error, 'isLoading:', isLoading);
