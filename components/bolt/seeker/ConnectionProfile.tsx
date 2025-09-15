@@ -109,7 +109,7 @@ export default function ConnectionProfile({ connection, onBack }: ConnectionProf
     
     return qualityMap[quality] || quality;
   };
-  const providers: ServiceProvider[] = ((data?.items as any[]) || []).map((r: any) => ({
+  const providers: ServiceProvider[] = ((data as any)?.items || []).map((r: any) => ({
     id: r.providerId || r.id, // Use providerId if available, fallback to recommendation id
     name: r.name,
     serviceType: r.serviceType,
