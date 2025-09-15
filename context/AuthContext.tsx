@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 // Removed mock data import - using real data only
 import { supabaseBrowser } from '../lib/supabase/client';
+import { getSessionManager, preventBackNavigation } from '../lib/sessionManager';
 
 interface Connection {
   id: string;
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [availableProviders, setAvailableProviders] = useState<ServiceProvider[]>([]);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [isFirstLogin, setIsFirstLogin] = useState(true);
+  const [sessionManager] = useState(() => getSessionManager());
 
   const normalizePhone = (raw: string) => {
     if (!raw) return '';
@@ -255,17 +257,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await supabaseBrowser.auth.signOut();
-    setUser(null);
-    setConnections([]);
-    setIsFirstLogin(false);
     try {
-      if (typeof document !== 'undefined') {
+      // Clear local state first
+      setUser(null);
+      setConnections([]);
+      setIsFirstLogin(false);
+      
+      // Clear any cached data
+      if (typeof window !== 'undefined') {
+        // Clear React Query cache
+        const queryClient = (window as any).__REACT_QUERY_CLIENT__;
+        if (queryClient) {
+          queryClient.clear();
+        }
+        
+        // Clear all storage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear cookies
         document.cookie = 'userType=; Max-Age=0; Path=/; SameSite=Lax';
-        // Route to role-agnostic auth page
-        window.location.assign('/auth');
+        document.cookie = 'session_token=; Max-Age=0; Path=/; SameSite=Lax';
+        
+        // Sign out from Supabase
+        await supabaseBrowser.auth.signOut();
+        
+        // Prevent back button navigation
+        window.history.replaceState(null, '', '/auth');
+        
+        // Force redirect to auth page
+        window.location.href = '/auth';
       }
-    } catch {}
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force redirect even if logout fails
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth';
+      }
+    }
   };
 
   const addConnection = (connection: Connection) => {
@@ -311,12 +340,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         setLoading(false);
       }
-      const sub = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
+      
+      const sub = supabaseBrowser.auth.onAuthStateChange((event, session) => {
         const sessionUser = session?.user;
         if (!sessionUser) {
           setUser(null);
           return;
         }
+        
         const derivedType = (sessionUser.user_metadata?.userType as any) || getCookieUserType() || 'seeker';
         setUser((prev) => ({
           id: sessionUser.id,
@@ -331,10 +362,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsub = sub.data.subscription;
     };
     init();
+    
     return () => {
-      try { unsub?.unsubscribe?.(); } catch {}
+      try { 
+        unsub?.unsubscribe?.(); 
+        sessionManager.destroy();
+      } catch {}
     };
-  }, []);
+  }, [sessionManager]);
 
   return (
     <AuthContext.Provider value={{

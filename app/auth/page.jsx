@@ -1,6 +1,7 @@
 "use client";
 import React, { Suspense } from 'react';
 import BoltAuthPage from '../../components/bolt/pages/AuthPage';
+import SessionGuard from '../../components/common/SessionGuard';
 
 export const dynamic = 'force-dynamic';
 import { I18nProvider } from '../../context/I18nContext';

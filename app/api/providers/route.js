@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '../../../lib/supabase/server';
+import { apiRateLimit } from '../../../lib/rateLimit';
+import { withRateLimit } from '../../../lib/rateLimitMiddleware';
 
 export async function POST(req) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(apiRateLimit)(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const body = await req.json().catch(() => ({}));
   const { name, service_type, city = '', phone_hash, phone_enc } = body || {};
   if (!name || !service_type || !phone_hash) {
@@ -38,6 +44,10 @@ export async function POST(req) {
 }
 
 export async function GET(req) {
+  // Apply rate limiting
+  // const rateLimitResponse = await withRateLimit(apiRateLimit)(req);
+  // if (rateLimitResponse) return rateLimitResponse;
+
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q') || '';
   const service = searchParams.get('service');

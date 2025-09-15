@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { X, Search, MapPin, Users, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../../context/I18nContext';
 import InitialsAvatar from '../common/InitialsAvatar';
 import { useDiscoverUsers, useSentConnectionRequests } from '../../../hooks/connections';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,6 +16,7 @@ export default function FindPeopleModal({ onClose }: FindPeopleModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
   const { addConnection, user } = useAuth();
+  const { t } = useI18n();
   const { data } = useDiscoverUsers(user?.id);
   const { data: sentReqData } = useSentConnectionRequests(user?.id);
   const queryClient = useQueryClient();
@@ -85,7 +87,7 @@ export default function FindPeopleModal({ onClose }: FindPeopleModalProps) {
       <div ref={modalRef} className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-4 md:p-6">
           <div className="flex items-center justify-between mb-4 md:mb-6">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Find People</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{t('findPeople.title')}</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -99,7 +101,7 @@ export default function FindPeopleModal({ onClose }: FindPeopleModalProps) {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name or phone number..."
+              placeholder={t('findPeople.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 md:pl-12 pr-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm md:text-base"
@@ -108,7 +110,7 @@ export default function FindPeopleModal({ onClose }: FindPeopleModalProps) {
 
           {/* Suggested People */}
           <div className="mb-4">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Suggested Friends</h3>
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">{t('findPeople.suggestedFriends')}</h3>
             <div className="space-y-3 md:space-y-4">
               {filteredPeople.map((person) => (
                 <div key={person.id} className="bg-gray-50 rounded-lg p-3 md:p-4">
@@ -134,7 +136,7 @@ export default function FindPeopleModal({ onClose }: FindPeopleModalProps) {
                         </div>
                         <div className="flex items-center text-gray-500 text-xs md:text-sm">
                           <Users className="w-3 md:w-4 h-3 md:h-4 mr-1" />
-                          {person.mutualConnections} mutual connection{person.mutualConnections !== 1 ? 's' : ''}
+                          {person.mutualConnections} {t('findPeople.mutualConnections')}
                           {person.mutualConnections > 0 && (
                             <span className="ml-1 text-gray-400">
                               ({person.mutualNames.join(', ')})
@@ -142,7 +144,7 @@ export default function FindPeopleModal({ onClose }: FindPeopleModalProps) {
                           )}
                         </div>
                         <div className="text-xs text-indigo-600 mt-1">
-                          {person.recommendationCount} recommendations
+                          {person.recommendationCount} {t('findPeople.recommendations')}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           {maskPhoneNumber(person.phone)}
@@ -160,11 +162,11 @@ export default function FindPeopleModal({ onClose }: FindPeopleModalProps) {
                       }`}
                     >
                       {sentRequests.includes(person.id) ? (
-                        'Request Sent'
+                        t('connections.requestSent')
                       ) : (
                         <>
                           <UserPlus className="w-3 md:w-4 h-3 md:h-4 mr-1 inline" />
-                          Add Friend
+                          {t('findPeople.addFriend')}
                         </>
                       )}
                     </button>

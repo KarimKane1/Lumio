@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '../../../lib/supabase/server';
 import crypto from 'crypto';
+import { apiRateLimit, strictRateLimit } from '../../../lib/rateLimit';
+import { withRateLimit } from '../../../lib/rateLimitMiddleware';
+import { 
+  validateName, 
+  validateServiceType, 
+  validateLocation, 
+  validateStringArray,
+  validatePhoneNumber 
+} from '../../../lib/validation';
+import { createErrorResponse, logError, createValidationError, createInternalError } from '../../../lib/errorHandler';
 
 // Phone number utilities
 function normalizePhone(phone) {
@@ -65,6 +75,10 @@ function decryptPhone(encryptedHex) {
 }
 
 export async function POST(req) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(strictRateLimit)(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     console.log('POST /api/recommendations - Starting');
     
@@ -72,9 +86,43 @@ export async function POST(req) {
     const { name, serviceType, phone, location, qualities = [], watchFor = [], recommender_user_id } = body || {};
     console.log('Request body:', { name, serviceType, phone, location });
 
-    if (!name || !serviceType || !phone) {
-      console.log('Missing required fields');
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // Validate all inputs
+    const validationErrors = [];
+    
+    const nameValidation = validateName(name);
+    if (!nameValidation.isValid) {
+      validationErrors.push(...nameValidation.errors);
+    }
+    
+    const serviceTypeValidation = validateServiceType(serviceType);
+    if (!serviceTypeValidation.isValid) {
+      validationErrors.push(...serviceTypeValidation.errors);
+    }
+    
+    const phoneValidation = validatePhoneNumber(phone);
+    if (!phoneValidation.isValid) {
+      validationErrors.push(...phoneValidation.errors);
+    }
+    
+    const locationValidation = validateLocation(location);
+    if (!locationValidation.isValid) {
+      validationErrors.push(...locationValidation.errors);
+    }
+    
+    const qualitiesValidation = validateStringArray(qualities, 'qualities', 5);
+    if (!qualitiesValidation.isValid) {
+      validationErrors.push(...qualitiesValidation.errors);
+    }
+    
+    const watchForValidation = validateStringArray(watchFor, 'watchFor', 5);
+    if (!watchForValidation.isValid) {
+      validationErrors.push(...watchForValidation.errors);
+    }
+    
+    if (validationErrors.length > 0) {
+      console.log('Validation errors:', validationErrors);
+      const error = createValidationError('Validation failed', validationErrors);
+      return NextResponse.json(createErrorResponse(error), { status: error.statusCode });
     }
 
     // Get the authorization header
@@ -106,13 +154,9 @@ export async function POST(req) {
     // Use the authenticated user's ID
     const userId = user.id;
 
-    const e164 = normalizePhone(phone);
-    console.log('Normalized phone:', e164);
-    
-    // Validate phone number format
-    if (!e164 || e164.length < 10) {
-      return NextResponse.json({ error: 'Invalid phone number format' }, { status: 400 });
-    }
+    // Use the validated and sanitized phone number
+    const e164 = phoneValidation.sanitizedValue;
+    console.log('Validated phone:', e164);
     
     const phone_hash = hashPhoneE164(e164);
     const phone_enc_hex = encryptPhone(e164);
@@ -205,10 +249,10 @@ export async function POST(req) {
       const { data: created, error: createErr } = await supabase
         .from('provider')
         .insert({
-          name: name.trim(),
+          name: nameValidation.sanitizedValue,
           service_category_id,
-          service_type,
-          city: city ? city.trim() : null,
+          service_type: serviceTypeValidation.sanitizedValue,
+          city: locationValidation.sanitizedValue || null,
           phone_hash,
           phone_enc: phone_enc_hex ? `\\x${phone_enc_hex}` : null,
         })
@@ -237,8 +281,12 @@ export async function POST(req) {
 
   // Create recommendation (note combines simple text for MVP)
   const noteParts = [];
-  if (qualities?.length) noteParts.push(`Liked: ${qualities.join(', ')}`);
-  if (watchFor?.length) noteParts.push(`Watch: ${watchFor.join(', ')}`);
+  if (qualitiesValidation.sanitizedValue?.length) {
+    noteParts.push(`Liked: ${qualitiesValidation.sanitizedValue.join(', ')}`);
+  }
+  if (watchForValidation.sanitizedValue?.length) {
+    noteParts.push(`Watch: ${watchForValidation.sanitizedValue.join(', ')}`);
+  }
   const note = noteParts.join(' | ');
 
   console.log('Creating recommendation with:', { providerId, userId, note });
@@ -298,12 +346,17 @@ export async function POST(req) {
 
     return NextResponse.json({ id: rec.id, provider_id: providerId });
   } catch (error) {
-    console.error('POST /api/recommendations error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logError(error, 'POST /api/recommendations');
+    const errorResponse = createErrorResponse(error);
+    return NextResponse.json(errorResponse, { status: errorResponse.statusCode });
   }
 }
 
 export async function GET(req) {
+  // Apply rate limiting
+  // const rateLimitResponse = await withRateLimit(apiRateLimit)(req);
+  // if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
@@ -507,12 +560,17 @@ export async function GET(req) {
     return NextResponse.json({ items });
     
   } catch (error) {
-    console.error('GET /api/recommendations error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logError(error, 'GET /api/recommendations');
+    const errorResponse = createErrorResponse(error);
+    return NextResponse.json(errorResponse, { status: errorResponse.statusCode });
   }
 }
 
 export async function PATCH(req) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(strictRateLimit)(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const supabase = supabaseServer();
   const body = await req.json().catch(() => ({}));
   const { id, name, serviceType, phone, location, qualities = [], watchFor = [] } = body || {};
@@ -623,8 +681,9 @@ export async function PATCH(req) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('PATCH /api/recommendations error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logError(error, 'PATCH /api/recommendations');
+    const errorResponse = createErrorResponse(error);
+    return NextResponse.json(errorResponse, { status: errorResponse.statusCode });
   }
 }
 

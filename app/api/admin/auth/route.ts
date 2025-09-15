@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { trackServerEvent } from '../../../../lib/trackEvent';
+import { authRateLimit } from '../../../../lib/rateLimit';
+import { withRateLimit } from '../../../../lib/rateLimitMiddleware';
 
 export async function POST(req: Request) {
+  // Apply rate limiting for admin auth
+  const rateLimitResponse = await withRateLimit(authRateLimit)(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { email, password } = await req.json();
 
@@ -49,6 +55,10 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  // Apply rate limiting for admin auth
+  const rateLimitResponse = await withRateLimit(authRateLimit)(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

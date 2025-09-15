@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '../../../lib/supabase/server';
+import { apiRateLimit } from '../../../lib/rateLimit';
+import { withRateLimit } from '../../../lib/rateLimitMiddleware';
 
 export async function GET(req) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(apiRateLimit)(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const supabase = supabaseServer();
   
   // Get the Authorization header
@@ -34,6 +40,10 @@ export async function GET(req) {
 }
 
 export async function PATCH(req) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(apiRateLimit)(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const supabase = supabaseServer();
   
   // Get the Authorization header

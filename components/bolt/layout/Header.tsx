@@ -17,9 +17,9 @@ export default function Header({ userType }: HeaderProps) {
     setShowLogoutConfirm(true);
   };
 
-  const handleLogoutConfirm = () => {
+  const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
-    logout();
+    await logout();
   };
 
   const handleLogoutCancel = () => {

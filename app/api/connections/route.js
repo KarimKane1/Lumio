@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '../../../lib/supabase/server';
+import { apiRateLimit } from '../../../lib/rateLimit';
+import { withRateLimit } from '../../../lib/rateLimitMiddleware';
 
 export async function GET(req) {
+  // Apply rate limiting
+  // const rateLimitResponse = await withRateLimit(apiRateLimit)(req);
+  // if (rateLimitResponse) return rateLimitResponse;
+
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get('userId');
   const wantsRequests = searchParams.get('requests') === '1';
@@ -87,22 +93,12 @@ export async function GET(req) {
   }
 
   if (wantsNetwork && userId) {
-    console.log('Fetching network for userId:', userId);
-    
-    // First, let's test if the connection table exists and is accessible
-    const { data: testData, error: testError } = await supabase
-      .from('connection')
-      .select('*')
-      .limit(1);
-    console.log('Connection table test:', { testData: testData?.length, testError });
-    
     // Return current user's connections
     const { data, error } = await supabase
       .from('connection')
       .select('user_a_id,user_b_id')
       .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`);
     
-    console.log('Connection query result:', { data: data?.length, error });
     if (error) {
       console.error('Connection query error:', error);
       return NextResponse.json({ error: error.message, details: error }, { status: 500 });
@@ -110,16 +106,9 @@ export async function GET(req) {
     const otherIds = new Set(
       (data || []).map((r) => (r.user_a_id === userId ? r.user_b_id : r.user_a_id))
     );
-    console.log('Network debug:', { 
-      userId, 
-      connectionData: data?.length || 0, 
-      otherIds: Array.from(otherIds),
-      otherIdsSize: otherIds.size 
-    });
     
     // If no connections, return empty array instead of error
     if (otherIds.size === 0) {
-      console.log('No connections found for user:', userId);
       return NextResponse.json({ items: [] });
     }
     
@@ -262,6 +251,10 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  // Apply rate limiting
+  // const rateLimitResponse = await withRateLimit(apiRateLimit)(req);
+  // if (rateLimitResponse) return rateLimitResponse;
+
   const body = await req.json().catch(() => ({}));
   const { requester_user_id, recipient_user_id, status, requester_name, recipient_name } = body || {};
   if (!requester_user_id || !recipient_user_id) {
@@ -310,6 +303,10 @@ export async function POST(req) {
 }
 
 export async function PATCH(req) {
+  // Apply rate limiting
+  // const rateLimitResponse = await withRateLimit(apiRateLimit)(req);
+  // if (rateLimitResponse) return rateLimitResponse;
+
   const body = await req.json().catch(() => ({}));
   const { requester_user_id, recipient_user_id, action } = body || {};
   

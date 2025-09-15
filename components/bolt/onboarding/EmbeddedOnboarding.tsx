@@ -40,12 +40,12 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
 
   // Quality options (same as real modal)
   const qualityOptions = [
-    'Job quality',
-    'Timeliness',
-    'Clean & organized',
-    'Professional',
-    'Reliable & trustworthy',
-    'Fair pricing'
+    'quality.jobQuality',
+    'quality.timeliness',
+    'quality.cleanOrganized',
+    'quality.professional',
+    'quality.reliableTrustworthy',
+    'quality.fairPricing'
   ];
 
   const qualityHelp: Record<string, string> = {
@@ -58,10 +58,10 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
   };
 
   const watchForOptions = [
-    'Expensive',
-    'Limited availability',
-    'Punctuality',
-    'Communication'
+    'watchFor.expensive',
+    'watchFor.limitedAvailability',
+    'watchFor.punctuality',
+    'watchFor.communication'
   ];
 
   const watchHelp: Record<string, string> = {
@@ -223,7 +223,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
         mutualNames: [],
         recommendationCount: 0,
         masked_phone: '+1 *****0000',
-        description: 'Your friendly Lumio guide! Click "Add Friend" to see how it works.'
+        description: t('connections.lumiDescription')
       }
     ];
     
@@ -313,13 +313,13 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
     // Validate required fields
     const errors: Record<string, string> = {};
     if (!providerForm.name.trim()) {
-      errors.name = 'Provider name is required';
+      errors.name = t('addRec.providerNameRequired');
     }
     if (!providerForm.serviceType) {
-      errors.serviceType = 'Service type is required';
+      errors.serviceType = t('addRec.serviceTypeRequired');
     }
     if (!providerForm.phone.trim()) {
-      errors.phone = 'Phone number is required';
+      errors.phone = t('addRec.phoneRequired');
     }
 
     if (Object.keys(errors).length > 0) {
@@ -343,30 +343,30 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
       setTimeout(() => setCurrentStep(3), 1500);
     } catch (error) {
       console.error('Error adding provider:', error);
-      setSubmitError('Failed to add provider. Please try again.');
+      setSubmitError(t('addRec.failedToAdd'));
     }
   };
 
   const steps = [
     {
       id: 'welcome',
-      title: 'Welcome to Lumio! 🎉',
-      description: 'Let\'s get you set up quickly. We\'ll add some friends and providers to get you started.',
+      title: t('onboarding.seeker.welcome'),
+      description: t('onboarding.seeker.buildNetwork'),
     },
     {
       id: 'add-friends',
-      title: 'Learn How to Add Friends 👥',
-      description: 'Let\'s learn how to add friends! Click "Add Friend" next to Lumi to see how it works.',
+      title: t('onboarding.seeker.learnAddFriends'),
+      description: t('onboarding.seeker.learnAddFriendsDesc'),
     },
     {
       id: 'add-provider',
-      title: 'Add a Trusted Provider 🛠️',
-      description: 'Add a service provider you trust and would want to recommend to your friends. This helps build your network and helps others find great services.',
+      title: t('onboarding.seeker.addProvider'),
+      description: t('onboarding.seeker.addProviderDesc'),
     },
     {
       id: 'complete',
-      title: 'You\'re All Set! 🎉',
-      description: 'Welcome to Lumio! You can now explore services and connect with your network.',
+      title: t('onboarding.seeker.allSet'),
+      description: t('onboarding.seeker.allSetDesc'),
     },
   ];
 
@@ -402,7 +402,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
               className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 flex items-center justify-center"
             >
               <ArrowRight className="w-4 h-4 mr-2" />
-              Let's Get Started
+              {t('common.getStarted')}
             </button>
           </div>
         )}
@@ -436,7 +436,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                           : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50'
                       }`}
                     >
-                      {loading ? 'Adding...' : isFriendRequestSent(friend.id) ? 'Request Sent' : 'Add Friend'}
+                      {loading ? t('common.adding') : isFriendRequestSent(friend.id) ? t('connections.requestSent') : t('connections.addFriend')}
                     </button>
                   </div>
                 ))}
@@ -467,7 +467,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-2">
-                    Provider Name *
+                    {t('addRec.providerName')} *
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -478,7 +478,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                       className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 text-gray-900 ${
                         formErrors.name ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder="Enter provider name"
+                      placeholder={t('addRec.enterProviderName')}
                       required
                     />
                   </div>
@@ -494,7 +494,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
 
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-2">
-                    Service Type *
+                    {t('addRec.serviceType')} *
                   </label>
                   <div className="relative">
                     <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -507,7 +507,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                       required
                       disabled={categoriesLoading}
                     >
-                      <option value="">{categoriesLoading ? 'Loading...' : 'Select service type'}</option>
+                      <option value="">{categoriesLoading ? t('common.loading') : t('addRec.selectServiceType')}</option>
                       {categories.map(category => (
                         <option key={category.id} value={category.slug}>{getLocalizedCategoryName(category)}</option>
                       ))}
@@ -525,7 +525,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
 
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-2">
-                    Provider's Phone Number *
+                    {t('addRec.phoneNumber')} *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -550,7 +550,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                         className={`flex-1 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 text-gray-900 ${
                           formErrors.phone ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        placeholder="Enter phone number"
+                        placeholder={t('addRec.enterPhoneNumber')}
                         required
                       />
                     </div>
@@ -568,7 +568,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                 {/* What You Liked */}
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-3">
-                    What You Liked (Optional)
+                    {t('addRec.whatYouLiked')}
                   </label>
                   
                   <div className="grid grid-cols-2 gap-3">
@@ -583,7 +583,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                             : 'border-gray-300 text-gray-800 hover:border-gray-400'
                         }`}
                       >
-                        <div className="font-medium text-sm">{quality}</div>
+                        <div className="font-medium text-sm">{t(quality)}</div>
                       </button>
                     ))}
                   </div>
@@ -592,7 +592,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                 {/* Things to Watch Out For */}
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-3">
-                    Things to Watch Out For (Optional)
+                    {t('addRec.thingsToWatch')}
                   </label>
                   
                   <div className="grid grid-cols-2 gap-3">
@@ -607,7 +607,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                             : 'border-gray-300 text-gray-800 hover:border-gray-400'
                         }`}
                       >
-                        <div className="font-medium text-sm">{watch}</div>
+                        <div className="font-medium text-sm">{t(watch)}</div>
                       </button>
                     ))}
                   </div>
@@ -625,12 +625,12 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                   {addRecommendation.isPending ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Adding Provider...
+                      {t('addRec.addingProvider')}
                     </>
                   ) : (
                     <>
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Provider
+                      {t('addRec.addProvider')}
                     </>
                   )}
                 </button>
@@ -638,7 +638,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
             ) : (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
                 <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <span className="text-green-800 font-medium">Perfect! Provider added!</span>
+                <span className="text-green-800 font-medium">{t('addRec.providerAdded')}</span>
               </div>
             )}
           </div>
@@ -652,7 +652,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
               className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 flex items-center justify-center"
             >
               <ArrowRight className="w-4 h-4 mr-2" />
-              Start Using Lumio
+              {t('common.startUsingLumio')}
             </button>
           </div>
         )}

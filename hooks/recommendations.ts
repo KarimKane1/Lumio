@@ -6,21 +6,17 @@ export function useRecommendations(userId?: string) {
   const qp = new URLSearchParams();
   if (userId) qp.set('userId', userId);
   
-  console.log('useRecommendations called with userId:', userId);
-  console.log('Query params:', qp.toString());
-  
   return useQuery({
     queryKey: ['recommendations', userId || 'me'],
     queryFn: async () => {
       const url = `/api/recommendations?${qp.toString()}`;
-      console.log('Fetching recommendations from:', url);
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to load recommendations');
-      const data = await res.json();
-      console.log('Recommendations response:', data);
-      return data;
+      return res.json();
     },
     enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
@@ -29,18 +25,13 @@ export function useAddRecommendation() {
   return useMutation({
     mutationFn: async (body: any) => {
       // Get the current session token
-      const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
-      console.log('Session data:', { session, sessionError });
-      
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
       const token = session?.access_token;
-      console.log('Token:', token ? 'Present' : 'Missing');
       
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
-      console.log('Request headers:', headers);
       
       const res = await fetch('/api/recommendations', { 
         method: 'POST', 
@@ -49,7 +40,6 @@ export function useAddRecommendation() {
       });
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('API Error:', res.status, errorText);
         throw new Error(`Failed to add recommendation: ${res.status}`);
       }
       return res.json();

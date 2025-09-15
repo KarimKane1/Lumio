@@ -8,6 +8,8 @@ import EmbeddedOnboarding from '../../components/bolt/onboarding/EmbeddedOnboard
 import { useI18n } from '../../context/I18nContext';
 import RequestsBanner from '../../components/bolt/common/RequestsBanner';
 import GlobalAcceptanceBanner from '../../components/bolt/common/GlobalAcceptanceBanner';
+import SessionGuard from '../../components/common/SessionGuard';
+import SessionTimeoutWarning from '../../components/common/SessionTimeoutWarning';
 
 const tabs = [
   { id: 'services', label: 'Services', href: '/seeker/services' },
@@ -61,7 +63,10 @@ export default function SeekerLayout({ children }) {
   React.useEffect(() => {
     // Only redirect after we know auth status for sure
     if (loading) return;
-    if (!user) return; // let /auth page handle anonymous redirects
+    if (!user) {
+      router.replace('/auth');
+      return;
+    }
     if (user.userType !== 'seeker') {
       router.replace('/auth');
     }
@@ -72,8 +77,7 @@ export default function SeekerLayout({ children }) {
     if (t) router.push(t.href);
   };
   if (loading) return <div className="min-h-screen bg-gray-50" />;
-  // Server-side guard fallback (client): if cookie says provider, block
-  // Remove aggressive cookie-based client redirect to avoid false logouts on refresh
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Header userType="seeker" />

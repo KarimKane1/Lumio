@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { X, Check, UserX, MapPin, Users, Send, Inbox } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../../context/I18nContext';
 import { useConnectionRequests, useSentConnectionRequests } from '../../../hooks/connections';
 import InitialsAvatar from '../common/InitialsAvatar';
 
@@ -15,6 +16,7 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
   const qc = useQueryClient();
   const modalRef = useRef<HTMLDivElement>(null);
   const { addConnection, user } = useAuth();
+  const { t } = useI18n();
   const { data: receivedData, refetch: refetchReceived } = useConnectionRequests(user?.id);
   const { data: sentData, refetch: refetchSent } = useSentConnectionRequests(user?.id);
   const [activeTab, setActiveTab] = useState<'received' | 'sent'>('received');
@@ -151,7 +153,7 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
       <div ref={modalRef} className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-4 md:p-6">
           <div className="flex items-center justify-between mb-4 md:mb-6">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Friend Requests</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{t('connections.friendRequests')}</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -171,7 +173,7 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
               }`}
             >
               <Inbox className="w-4 h-4 mr-2" />
-              Received ({receivedRequests.length})
+{t('connections.received')} ({receivedRequests.length})
             </button>
             <button
               onClick={() => setActiveTab('sent')}
@@ -182,7 +184,7 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
               }`}
             >
               <Send className="w-4 h-4 mr-2" />
-              Sent ({sentRequests.length})
+{t('connections.sent')} ({sentRequests.length})
             </button>
           </div>
 
@@ -190,12 +192,12 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
             <div className="text-center py-8 md:py-12">
               <Users className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mx-auto mb-3 md:mb-4" />
               <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">
-                {activeTab === 'received' ? 'No Pending Requests' : 'No Sent Requests'}
+                {activeTab === 'received' ? t('connections.noPendingRequests') : t('connections.noSentRequests')}
               </h3>
               <p className="text-sm md:text-base text-gray-600">
                 {activeTab === 'received' 
-                  ? "You're all caught up! No new connection requests at the moment."
-                  : "You haven't sent any connection requests yet."
+                  ? t('connections.allCaughtUp')
+                  : t('connections.noSentRequestsYet')
                 }
               </p>
             </div>
@@ -225,7 +227,7 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
                         </div>
                         <div className="flex items-center text-gray-500 text-xs md:text-sm mb-1">
                           <Users className="w-3 md:w-4 h-3 md:h-4 mr-1" />
-                          {request.mutualConnections} mutual connection{request.mutualConnections !== 1 ? 's' : ''}
+                          {request.mutualConnections} {request.mutualConnections === 1 ? t('connections.mutualConnection') : t('connections.mutualConnections')}
                           {request.mutualConnections > 0 && (
                             <span className="ml-1 text-gray-400">
                               ({request.mutualNames.join(', ')})
@@ -233,10 +235,10 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
                           )}
                         </div>
                         <div className="text-xs text-indigo-600">
-                          {request.recommendationCount} recommendations
+                          {request.recommendationCount} {t('connections.recommendations')}
                         </div>
                         <div className="text-xs text-gray-400 mt-1">
-                          Requested {new Date(request.requestDate).toLocaleDateString()}
+                          {t('connections.requested')} {new Date(request.requestDate).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
@@ -249,14 +251,14 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
                             className="bg-green-600 text-white px-2 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-green-700 transition-colors font-medium text-xs md:text-sm flex items-center"
                           >
                             <Check className="w-3 md:w-4 h-3 md:h-4 mr-1" />
-                            Accept
+{t('connections.accept')}
                           </button>
                           <button
                             onClick={() => handleDeclineRequest(request.id)}
                             className="bg-gray-600 text-white px-2 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-700 transition-colors font-medium text-xs md:text-sm flex items-center"
                           >
                             <UserX className="w-3 md:w-4 h-3 md:h-4 mr-1" />
-                            Decline
+{t('connections.decline')}
                           </button>
                         </>
                       ) : (
@@ -265,7 +267,7 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
                           className="bg-red-600 text-white px-2 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-red-700 transition-colors font-medium text-xs md:text-sm flex items-center"
                         >
                           <X className="w-3 md:w-4 h-3 md:h-4 mr-1" />
-                          Cancel
+{t('connections.cancel')}
                         </button>
                       )}
                     </div>
@@ -277,11 +279,11 @@ export default function ConnectionRequestsModal({ onClose }: ConnectionRequestsM
 
           {/* Info */}
           <div className="bg-blue-50 rounded-lg p-3 md:p-4 mt-4 md:mt-6">
-            <h4 className="text-sm md:text-base font-semibold text-gray-900 mb-2">About Friend Requests</h4>
+            <h4 className="text-sm md:text-base font-semibold text-gray-900 mb-2">{t('connections.aboutFriendRequests')}</h4>
             <ul className="text-xs md:text-sm text-gray-600 space-y-1">
-              <li>• Only accept requests from people you know and trust</li>
-              <li>• Mutual connections help verify trustworthiness</li>
-              <li>• You can always remove connections later if needed</li>
+              <li>• {t('connections.onlyAcceptKnown')}</li>
+              <li>• {t('connections.mutualConnectionsHelp')}</li>
+              <li>• {t('connections.canRemoveLater')}</li>
             </ul>
           </div>
         </div>

@@ -168,7 +168,7 @@ export default function ConnectionsTab() {
         {/* Main title and subtitle */}
         <div className="max-w-2xl mx-auto">
           <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">{t('connections.title') || 'Your Friends'}</h2>
-          <p className="text-sm md:text-base text-gray-600 px-4 md:px-0">Connect with people you trust to discover and share reliable service provider recommendations. Build your network on Verra to access verified contacts and help others find great services.</p>
+          <p className="text-sm md:text-base text-gray-600 px-4 md:px-0">{t('connections.introText')}</p>
           
           {/* Main call-to-action button */}
           <div className="mt-3 md:mt-4">
@@ -192,13 +192,13 @@ export default function ConnectionsTab() {
                 <div className="bg-indigo-100 p-2 rounded-lg mr-3">
                   <Users className="w-5 h-5 text-indigo-600" />
                 </div>
-                <h3 className="text-lg md:text-xl font-semibold text-gray-900">Suggested for You</h3>
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900">{t('connections.suggestedForYou')}</h3>
               </div>
               <button
                 onClick={() => setShowFindPeople(true)}
                 className="text-indigo-600 hover:text-indigo-700 text-sm font-medium bg-white px-3 py-1 rounded-lg border border-indigo-200 hover:bg-indigo-50"
               >
-                See More →
+{t('connections.seeMore')} →
               </button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -223,7 +223,7 @@ export default function ConnectionsTab() {
                         : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                     }`}
                   >
-                    {sentRequestIdsFromAPI.includes(person.id) ? 'Request Sent' : 'Add Friend'}
+                    {sentRequestIdsFromAPI.includes(person.id) ? t('connections.requestSent') : t('connections.addFriend')}
                   </button>
                 </div>
               ))}
@@ -242,7 +242,7 @@ export default function ConnectionsTab() {
               <Users className="w-5 h-5 text-green-600" />
             </div>
             <h3 className="text-lg md:text-xl font-semibold text-gray-900">
-              Your Friends ({allConnections.length} {allConnections.length === 1 ? 'friend' : 'friends'})
+              {t('connections.yourFriends')} ({allConnections.length} {allConnections.length === 1 ? t('connections.friend') : t('connections.friends')})
             </h3>
           </div>
           {allConnections.length > 0 ? (
@@ -265,7 +265,7 @@ export default function ConnectionsTab() {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>No connections yet. Start by inviting friends or finding people to connect with!</p>
+              <p>{t('connections.noConnectionsYet')}</p>
             </div>
           )}
         </div>

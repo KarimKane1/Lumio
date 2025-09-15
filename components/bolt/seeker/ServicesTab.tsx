@@ -19,73 +19,46 @@ export default function ServicesTab() {
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
   const { availableProviders, isGuest, logout, user } = useAuth();
   const { t } = useI18n();
-  const { data } = useProviders({ q: searchTerm, service: selectedCategory === 'All' ? undefined : selectedCategory });
+  const { data, isLoading: providersLoading } = useProviders({ q: searchTerm, service: selectedCategory === 'All' ? undefined : selectedCategory });
   const { categories, getLocalizedCategoryName } = useCategories();
-  const { data: connectionsData, refetch: refetchConnections } = useConnections(user?.id);
+  const { data: connectionsData, refetch: refetchConnections, isLoading: connectionsLoading } = useConnections(user?.id);
+  
+  const isLoading = providersLoading || connectionsLoading;
   const queryClient = useQueryClient();
   const liveProviders = (data?.items as any[]) || [];
   
   // Debug: Log the raw provider data
-  console.log('ServicesTab Debug - Raw provider data:', liveProviders);
-  
   // Combine mock providers with providers from accepted connections
-  const mappedLive = liveProviders.map((p: any) => {
-    console.log('ServicesTab Debug - Mapping provider:', {
-      id: p.id,
-      name: p.name,
-      top_likes: p.top_likes,
-      top_watch: p.top_watch,
-      recommenders: p.recommenders
-    });
-    
-    return {
-      id: p.id,
-      name: p.name,
-      serviceType: p.service_type || p.serviceType,
-      location: p.city || '',
-      avatar: p.photo_url || 'https://placehold.co/64x64',
-      phone: '',
-      recommendedBy: undefined,
-      // Filter out recommendations from the current user
-      recommenders: (p.recommenders || [])
-        .map((r: any) => ({ id: r.id, name: r.name }))
-        .filter((r: any) => r.id !== user?.id), // Don't show current user's own recommendations
-      isNetworkRecommendation: true,
-      qualities: (p.top_likes || []).slice(0, 3),
-      watchFor: (p.top_watch || []).slice(0, 2),
-    };
-  });
+  const mappedLive = liveProviders.map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    serviceType: p.service_type || p.serviceType,
+    location: p.city || '',
+    avatar: p.photo_url || 'https://placehold.co/64x64',
+    phone: '',
+    recommendedBy: undefined,
+    // Filter out recommendations from the current user
+    recommenders: (p.recommenders || [])
+      .map((r: any) => ({ id: r.id, name: r.name }))
+      .filter((r: any) => r.id !== user?.id), // Don't show current user's own recommendations
+    isNetworkRecommendation: true,
+    qualities: (p.top_likes || []).slice(0, 3),
+    watchFor: (p.top_watch || []).slice(0, 2),
+  }));
   
-  console.log('ServicesTab Debug - Mapped providers:', mappedLive);
-  
-  // Only show providers that have recommenders (network recommendations)
-  // Filter out providers with no recommenders or only self-recommendations
-  const networkProviders = mappedLive.filter(provider => 
-    provider.recommenders && 
-    provider.recommenders.length > 0 &&
-    provider.recommenders.some(rec => rec.id !== user?.id) // Has recommendations from others
-  );
-  
-  console.log('ServicesTab Debug - Network providers (filtered):', networkProviders);
-  
-  const allProviders = [...networkProviders, ...availableProviders];
+  // Show all providers (including user's own recommendations)
+  const allProviders = [...mappedLive, ...availableProviders];
 
   // Get user's network connections
   const userConnections = (connectionsData as any)?.items || [];
   const connectionUserIds = userConnections.map((conn: any) => conn.id);
   
-  // Force refresh connections data when component mounts
+  // Only refresh connections data if it's stale
   React.useEffect(() => {
-    if (user?.id) {
-      console.log('Forcing connections refresh for user:', user.id);
-      // Invalidate the query cache first
-      queryClient.invalidateQueries({ queryKey: ['connections', user.id] });
-      // Then refetch
-      refetchConnections().then((result) => {
-        console.log('Connections refresh result:', result);
-      });
+    if (user?.id && connectionsData === undefined) {
+      refetchConnections();
     }
-  }, [user?.id, refetchConnections, queryClient]);
+  }, [user?.id, connectionsData, refetchConnections]);
 
   // Debug logging
   React.useEffect(() => {
@@ -101,22 +74,12 @@ export default function ServicesTab() {
   const filteredProviders = allProviders.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          provider.serviceType.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'All' || 
+
+    const matchesCategory = selectedCategory === 'All' ||
       (provider.serviceType && provider.serviceType.toLowerCase() === selectedCategory.toLowerCase());
-    
-    // For guests, show limited providers without network recommendations
-    if (isGuest) {
-      return matchesSearch && matchesCategory;
-    }
-    
-    // For logged-in users, only show providers that are recommended by their network
-    const networkRecommenders = (provider as any).recommenders ? (provider as any).recommenders.filter((rec: any) => 
-      connectionUserIds.includes(rec.id)
-    ) : [];
-    
-    // Only show providers that have network recommendations
-    return matchesSearch && matchesCategory && networkRecommenders.length > 0;
+
+    // Show all providers that match search and category
+    return matchesSearch && matchesCategory;
   }).map(provider => {
     // Check if this provider is recommended by people in the user's network
     const networkRecommenders = (provider as any).recommenders ? (provider as any).recommenders.filter((rec: any) => 
@@ -171,6 +134,23 @@ export default function ServicesTab() {
         />
       </div>
 
+      {/* Loading Skeleton */}
+      {isLoading && (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 animate-pulse">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Service Categories */}
       <div className="mb-4 md:mb-6 px-2 md:px-0">
         <div className="flex flex-wrap gap-1 md:gap-2 mb-2 md:mb-4">
@@ -200,27 +180,59 @@ export default function ServicesTab() {
       </div>
 
       {/* Service Providers List */}
-      <div className="space-y-2 md:space-y-4 px-2 md:px-0">
-        {(isGuest ? filteredProviders.slice(0, 3) : filteredProviders).map((provider) => (
-          <ServiceProviderCard 
-            key={provider.id} 
-            provider={provider} 
-            onViewDetails={() => {
-              if (isGuest) {
-                handleGuestAction();
-              } else {
-                setSelectedProvider(provider);
-              }
-            }}
-            onContact={() => {
-              if (isGuest) {
-                handleGuestAction();
-              }
-            }}
-            isGuest={isGuest}
-          />
-        ))}
-      </div>
+      {!isLoading && (
+        <div className="space-y-2 md:space-y-4 px-2 md:px-0">
+          {filteredProviders.length > 0 ? (
+          (isGuest ? filteredProviders.slice(0, 3) : filteredProviders).map((provider) => (
+            <ServiceProviderCard 
+              key={provider.id} 
+              provider={provider} 
+              onViewDetails={() => {
+                if (isGuest) {
+                  handleGuestAction();
+                } else {
+                  setSelectedProvider(provider);
+                }
+              }}
+              onContact={() => {
+                if (isGuest) {
+                  handleGuestAction();
+                }
+              }}
+              isGuest={isGuest}
+            />
+          ))
+        ) : (
+          <div className="text-center py-12 px-4">
+            <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
+              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t('services.noProvidersTitle') || 'No service providers yet'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {t('services.noProvidersDesc') || 'Add friends to your network to see their recommended service providers, or add your own recommendations to help others.'}
+              </p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => onTabChange?.('connections')}
+                  className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+                >
+                  {t('services.addFriends') || 'Add Friends'}
+                </button>
+                <button
+                  onClick={() => onTabChange?.('recommendations')}
+                  className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
+                >
+                  {t('services.addRecommendations') || 'Add Recommendations'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        </div>
+      )}
 
       {isGuest && filteredProviders.length > 3 && (
         <div className="bg-indigo-50 rounded-xl p-4 text-center mt-6 mx-2 md:mx-0">

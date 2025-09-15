@@ -12,8 +12,9 @@ export function useConnections(userId?: string) {
       if (!res.ok) throw new Error('Failed to load connections');
       return res.json();
     },
-    staleTime: 0, // Always consider data stale to ensure fresh fetches
-    gcTime: 0, // Don't cache the data
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -28,8 +29,9 @@ export function useConnectionRequests(userId?: string) {
       if (!res.ok) throw new Error('Failed to load requests');
       return res.json();
     },
-    staleTime: 0, // Always consider data stale to ensure fresh fetches
-    gcTime: 0, // Don't cache the data
+    enabled: !!userId,
+    staleTime: 30 * 1000, // 30 seconds (requests change more frequently)
+    gcTime: 2 * 60 * 1000, // 2 minutes
   });
 }
 
@@ -44,8 +46,9 @@ export function useSentConnectionRequests(userId?: string) {
       if (!res.ok) throw new Error('Failed to load sent requests');
       return res.json();
     },
-    staleTime: 0, // Always consider data stale to ensure fresh fetches
-    gcTime: 0, // Don't cache the data
+    enabled: !!userId,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
   });
 }
 
@@ -60,6 +63,8 @@ export function useDiscoverUsers(currentUserId?: string) {
       if (!res.ok) throw new Error('Failed to load users');
       return res.json();
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
