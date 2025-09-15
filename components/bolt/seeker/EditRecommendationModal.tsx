@@ -94,10 +94,42 @@ export default function EditRecommendationModal({ recommendation, onClose, onSav
     countryCode: initialCountryCode,
     serviceType: normalizeServiceType(recommendation.serviceType)
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const modalRef = useRef<HTMLDivElement>(null);
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Please enter the provider\'s name';
+    }
+    
+    if (!formData.serviceType) {
+      errors.serviceType = 'Please choose what type of service this provider offers';
+    }
+    
+    if (!formData.phone.trim()) {
+      errors.phone = 'Please enter the provider\'s phone number';
+    } else if (formData.phone.length < 8) {
+      errors.phone = 'Please enter a complete phone number (at least 8 digits)';
+    }
+    
+    if (formData.qualities.length === 0) {
+      errors.qualities = 'Please select at least one thing you liked about this provider';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormErrors({});
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     // Clean the phone number by removing any non-digit characters
     const cleanPhone = formData.phone.replace(/\D/g, '');
     const fullPhone = `${formData.countryCode}${cleanPhone}`;
@@ -251,7 +283,7 @@ export default function EditRecommendationModal({ recommendation, onClose, onSav
             {/* What You Liked */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-3">
-                {t('recs.whatYouLiked') || 'What You Liked'} ({t('recs.optional') || 'Optional'})
+                {t('recs.whatYouLiked') || 'What You Liked'} <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {qualityOptions.map(quality => (
@@ -262,13 +294,23 @@ export default function EditRecommendationModal({ recommendation, onClose, onSav
                     className={`text-left p-3 rounded-lg border transition-colors text-gray-900 ${
                       formData.qualities.includes(quality)
                         ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        : formErrors.qualities
+                          ? 'border-red-500 hover:border-red-400 bg-white'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                   >
                     {getTranslatedQuality(quality)}
                   </button>
                 ))}
               </div>
+              {formErrors.qualities && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm font-medium flex items-center">
+                    <span className="mr-2 text-lg">⚠️</span>
+                    {formErrors.qualities}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Things to Watch For */}

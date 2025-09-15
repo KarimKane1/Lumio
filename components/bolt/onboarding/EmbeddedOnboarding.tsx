@@ -321,6 +321,9 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
     if (!providerForm.phone.trim()) {
       errors.phone = t('addRec.phoneRequired');
     }
+    if (providerForm.qualities.length === 0) {
+      errors.qualities = 'Please select at least one thing you liked about this provider';
+    }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -568,7 +571,7 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                 {/* What You Liked */}
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-3">
-                    {t('addRec.whatYouLiked')}
+                    {t('addRec.whatYouLiked')} <span className="text-red-500">*</span>
                   </label>
                   
                   <div className="grid grid-cols-2 gap-3">
@@ -580,13 +583,23 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                         className={`text-center p-3 rounded-lg border transition-colors ${
                           providerForm.qualities.includes(quality)
                             ? 'border-green-500 bg-green-50 text-green-700'
-                            : 'border-gray-300 text-gray-800 hover:border-gray-400'
+                            : formErrors.qualities
+                              ? 'border-red-500 text-gray-800 hover:border-red-400'
+                              : 'border-gray-300 text-gray-800 hover:border-gray-400'
                         }`}
                       >
                         <div className="font-medium text-sm">{t(quality)}</div>
                       </button>
                     ))}
                   </div>
+                  {formErrors.qualities && (
+                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-red-700 text-sm font-medium flex items-center">
+                        <span className="mr-2 text-lg">⚠️</span>
+                        {formErrors.qualities}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Things to Watch Out For */}

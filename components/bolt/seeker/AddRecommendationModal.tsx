@@ -147,6 +147,10 @@ export default function AddRecommendationModal({ onClose }: AddRecommendationMod
       errors.phone = 'Please enter a complete phone number (at least 8 digits)';
     }
     
+    if (formData.qualities.length === 0) {
+      errors.qualities = 'Please select at least one thing you liked about this provider';
+    }
+    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -330,7 +334,7 @@ export default function AddRecommendationModal({ onClose }: AddRecommendationMod
             {/* What You Liked */}
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-3">
-                {t('recs.whatYouLiked')} ({t('recs.optional')})
+                {t('recs.whatYouLiked')} <span className="text-red-500">*</span>
               </label>
               
               <div className="grid grid-cols-2 gap-3">
@@ -345,7 +349,9 @@ export default function AddRecommendationModal({ onClose }: AddRecommendationMod
                       className={`text-left p-3 rounded-lg border transition-colors ${
                         formData.qualities.includes(originalQuality)
                           ? 'border-green-500 bg-green-50 text-green-700'
-                          : 'border-gray-300 text-gray-800 hover:border-gray-400'
+                          : formErrors.qualities
+                            ? 'border-red-500 text-gray-800 hover:border-red-400'
+                            : 'border-gray-300 text-gray-800 hover:border-gray-400'
                       }`}
                     >
                       {quality}
@@ -353,6 +359,14 @@ export default function AddRecommendationModal({ onClose }: AddRecommendationMod
                   );
                 })}
               </div>
+              {formErrors.qualities && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm font-medium flex items-center">
+                    <span className="mr-2 text-lg">⚠️</span>
+                    {formErrors.qualities}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Things to Watch For */}
