@@ -216,13 +216,13 @@ export default function ServicesTab() {
               </p>
               <div className="space-y-3">
                 <button
-                  onClick={() => onTabChange?.('connections')}
+                  onClick={() => window.location.href = '/seeker/connections'}
                   className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
                 >
                   {t('services.addFriends') || 'Add Friends'}
                 </button>
                 <button
-                  onClick={() => onTabChange?.('recommendations')}
+                  onClick={() => window.location.href = '/seeker/recommendations'}
                   className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
                 >
                   {t('services.addRecommendations') || 'Add Recommendations'}
