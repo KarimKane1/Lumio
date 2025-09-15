@@ -1,9 +1,9 @@
 // Comprehensive input validation and sanitization utilities
 
-export interface ValidationResult {
+export interface ValidationResult<T = string> {
   isValid: boolean;
   errors: string[];
-  sanitizedValue?: string;
+  sanitizedValue?: T;
 }
 
 // Phone number validation for Senegal (+221) and US (+1)
@@ -229,7 +229,7 @@ export function validateUUID(uuid: string): ValidationResult {
 }
 
 // Validate array of strings (for qualities, watchFor, etc.)
-export function validateStringArray(arr: any, fieldName: string, maxItems: number = 10): ValidationResult {
+export function validateStringArray(arr: any, fieldName: string, maxItems: number = 10): ValidationResult<string[]> {
   if (!Array.isArray(arr)) {
     return { isValid: false, errors: [`${fieldName} must be an array`] };
   }
