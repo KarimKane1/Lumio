@@ -80,10 +80,10 @@ export async function GET(req: Request) {
     const seekersCount = usersWithRoles.filter(u => u.role === 'seeker').length;
     
     // Get actual provider count from provider table (not from users)
-    const { count: actualProvidersCount } = await supabase
+    const providerResponse = await supabase
       .from('provider')
       .select('*', { count: 'exact', head: true });
-    const providersCount = actualProvidersCount || 0;
+    const providersCount = providerResponse.count || 0;
 
     // Apply role filter
     let filteredUsers = usersWithRoles;
