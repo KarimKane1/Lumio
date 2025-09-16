@@ -630,23 +630,33 @@ export default function EmbeddedOnboarding({ onComplete, userType, onTabChange }
                   <p className="text-xs text-red-600">{limitMsg}</p>
                 )}
                 
-                <button
-                  type="submit"
-                  disabled={addRecommendation.isPending}
-                  className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  {addRecommendation.isPending ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      {t('addRec.addingProvider')}
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      {t('addRec.addProvider')}
-                    </>
-                  )}
-                </button>
+                <div className="space-y-3">
+                  <button
+                    type="submit"
+                    disabled={addRecommendation.isPending}
+                    className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    {addRecommendation.isPending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        {t('addRec.addingProvider')}
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        {t('addRec.addProvider')}
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(3)}
+                    className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center justify-center"
+                  >
+                    Skip for now
+                  </button>
+                </div>
               </form>
             ) : (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
