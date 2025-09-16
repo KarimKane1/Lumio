@@ -9,6 +9,7 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
+    const role = searchParams.get('role') || 'all';
 
     const supabase = supabaseServer();
     const offset = (page - 1) * limit;
@@ -45,16 +46,69 @@ export async function GET(req: Request) {
     });
 
     const uniqueUsers = Array.from(phoneMap.values());
-    const totalCount = uniqueUsers.length;
+    console.log('Unique users found:', uniqueUsers.length);
+    console.log('User IDs:', uniqueUsers.map(u => ({ name: u.name, id: u.id })));
+    
+    // Add role detection for each user - match database logic exactly
+    const usersWithRoles = await Promise.all(uniqueUsers.map(async (user) => {
+      // Use explicit user_type from database, matching the SQL query logic
+      let userRole = 'seeker'; // Default
+      
+      if (user.user_type === 'provider') {
+        userRole = 'provider';
+      } else if (user.user_type === 'seeker') {
+        userRole = 'seeker';
+      } else {
+        // For users with null user_type, check if they have recommendations (provider role)
+        const { data: recommendations } = await supabase
+          .from('recommendation')
+          .select('id')
+          .eq('recommender_user_id', user.id)
+          .limit(1);
+        
+        userRole = recommendations && recommendations.length > 0 ? 'provider' : 'seeker';
+      }
 
-    // Apply pagination to deduplicated results
-    const users = uniqueUsers.slice(offset, offset + limit);
+      return {
+        ...user,
+        role: userRole,
+        is_active: user.is_active !== false // Default to true if not set
+      };
+    }));
+
+    // Calculate counts by role
+    const seekersCount = usersWithRoles.filter(u => u.role === 'seeker').length;
+    
+    // Get actual provider count from provider table (not from users)
+    const { count: actualProvidersCount } = await supabase
+      .from('provider')
+      .select('*', { count: 'exact', head: true });
+    const providersCount = actualProvidersCount || 0;
+
+    // Apply role filter
+    let filteredUsers = usersWithRoles;
+    let totalCount = usersWithRoles.length;
+    
+    if (role === 'seeker') {
+      filteredUsers = usersWithRoles.filter(u => u.role === 'seeker');
+      totalCount = seekersCount;
+    } else if (role === 'provider') {
+      // For provider filter, we can't show provider table data in users table
+      // So we'll show users who have provider listings
+      filteredUsers = usersWithRoles.filter(u => u.role === 'provider');
+      totalCount = filteredUsers.length;
+    }
+
+    // Apply pagination to filtered results
+    const users = filteredUsers.slice(offset, offset + limit);
 
     const totalPages = Math.ceil(totalCount / limit);
 
     return NextResponse.json({
       users: users || [],
       total: totalCount,
+      seekersCount,
+      providersCount,
       page,
       totalPages,
       limit,

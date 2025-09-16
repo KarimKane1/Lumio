@@ -6,8 +6,8 @@ import { withRateLimit } from '../../../../lib/rateLimitMiddleware';
 
 export async function POST(req: Request) {
   // Apply rate limiting for admin auth
-  const rateLimitResponse = await withRateLimit(authRateLimit)(req);
-  if (rateLimitResponse) return rateLimitResponse;
+  // const rateLimitResponse = await withRateLimit(authRateLimit)(req);
+  // if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const { email, password } = await req.json();
@@ -56,16 +56,20 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   // Apply rate limiting for admin auth
-  const rateLimitResponse = await withRateLimit(authRateLimit)(req);
-  if (rateLimitResponse) return rateLimitResponse;
+  // const rateLimitResponse = await withRateLimit(authRateLimit)(req);
+  // if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const authHeader = req.headers.get('authorization');
+    console.log('Admin auth GET - authHeader:', authHeader ? 'present' : 'missing');
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('Admin auth GET - no valid auth header');
       return NextResponse.json({ error: 'No token provided' }, { status: 401 });
     }
 
     const token = authHeader.substring(7);
+    console.log('Admin auth GET - token length:', token.length);
 
     // Create Supabase client to verify the token
     const supabase = createClient(
@@ -74,19 +78,26 @@ export async function GET(req: Request) {
     );
 
     // Verify the JWT token
+    console.log('Admin auth GET - verifying token with Supabase...');
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
+      console.log('Admin auth GET - token verification failed:', error?.message);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    console.log('Admin auth GET - token verified, user email:', user.email);
+
     // Check if user email is in admin emails list
     const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || [];
+    console.log('Admin auth GET - admin emails:', adminEmails);
     
     if (!adminEmails.includes(user.email!)) {
+      console.log('Admin auth GET - email not in admin list:', user.email);
       return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
+    console.log('Admin auth GET - authentication successful');
     return NextResponse.json({ 
       valid: true, 
       user: { email: user.email, role: 'admin' }

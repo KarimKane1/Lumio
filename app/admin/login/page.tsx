@@ -15,6 +15,7 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with:', { email, password });
     setLoading(true);
     setError('');
 
@@ -26,15 +27,26 @@ export default function AdminLogin() {
       });
 
       const data = await response.json();
+      console.log('API response:', { status: response.status, data });
 
       if (response.ok) {
         // Store admin session
         localStorage.setItem('admin_token', data.token);
-        router.push('/admin/dashboard');
+        console.log('Login successful, redirecting...');
+        console.log('Token stored:', data.token);
+        // Use window.location for more reliable navigation
+        console.log('About to redirect to dashboard...');
+        console.log('Current URL:', window.location.href);
+        console.log('Target URL: /admin/dashboard');
+        
+        // Try immediate redirect
+        window.location.href = '/admin/dashboard';
       } else {
+        console.log('Login failed:', data.error);
         setError(data.error || 'Login failed');
       }
-    } catch {
+    } catch (error) {
+      console.error('Login error:', error);
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);

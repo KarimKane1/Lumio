@@ -95,7 +95,7 @@ export default function AdminDashboard() {
     },
     {
       title: 'Providers',
-      value: kpiData?.providers || 0,
+      value: kpiData?.totalProviders || 0,
       icon: Briefcase,
       color: 'green',
       change: `+${kpiData?.totalProvidersChange || 0}%`,
