@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   BarChart3, 
@@ -20,11 +20,75 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Skip auth check for login page
+    if (pathname === '/admin/login') {
+      setIsLoading(false);
+      return;
+    }
+    checkAuth();
+  }, [pathname]);
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('admin_token');
+    console.log('Admin layout - checking auth, token:', token ? 'exists' : 'missing');
+    
+    if (!token) {
+      console.log('No token found, redirecting to login');
+      router.push('/admin/login');
+      return;
+    }
+
+    try {
+      console.log('Making auth check request...');
+      const response = await fetch('/api/admin/auth', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('Auth check response:', response.status, response.ok);
+
+      if (response.ok) {
+        console.log('Auth check successful, setting authenticated');
+        setIsAuthenticated(true);
+      } else {
+        console.log('Auth check failed, removing token and redirecting');
+        localStorage.removeItem('admin_token');
+        router.push('/admin/login');
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('admin_token');
+      router.push('/admin/login');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Skip auth check for login page
   if (pathname === '/admin/login') {
     return <>{children}</>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verifying admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Will redirect to login
   }
 
   const handleLogout = () => {
@@ -34,7 +98,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: BarChart3 },
-    { name: 'Users', href: '/admin/users', icon: Users },
+    { name: 'Seekers', href: '/admin/users', icon: Users },
     { name: 'Providers', href: '/admin/providers', icon: Briefcase },
     { name: 'Categories', href: '/admin/categories', icon: Settings },
   ];

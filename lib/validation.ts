@@ -268,3 +268,55 @@ export function validateStringArray(arr: any, fieldName: string, maxItems: numbe
     sanitizedValue: sanitizedItems 
   };
 }
+
+// Centralized validation and sanitization function
+export function validateAndSanitize(fields: Record<string, { value: any; type: string }>): {
+  isValid: boolean;
+  errors: string[];
+  sanitized: Record<string, any>;
+} {
+  const errors: string[] = [];
+  const sanitized: Record<string, any> = {};
+
+  for (const [fieldName, { value, type }] of Object.entries(fields)) {
+    let result: ValidationResult;
+
+    switch (type) {
+      case 'name':
+        result = validateName(value);
+        break;
+      case 'phone':
+        result = validatePhoneNumber(value);
+        break;
+      case 'email':
+        result = validateEmail(value);
+        break;
+      case 'password':
+        result = validatePassword(value);
+        break;
+      case 'service_type':
+        result = validateServiceType(value);
+        break;
+      case 'location':
+        result = validateLocation(value);
+        break;
+      case 'uuid':
+        result = validateUUID(value);
+        break;
+      default:
+        result = validateTextInput(value, fieldName);
+    }
+
+    if (!result.isValid) {
+      errors.push(...result.errors);
+    } else {
+      sanitized[fieldName] = result.sanitizedValue;
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitized
+  };
+}

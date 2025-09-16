@@ -121,11 +121,11 @@ export async function GET(req: Request) {
       const uniquePhones = new Set(users?.map(u => u.phone_e164).filter(Boolean) || []);
       let count = uniquePhones.size;
 
-      // Filter by user type if specified
+      // Filter by user type if specified - match database logic exactly
       if (userType && userType !== 'all') {
         const filteredUsers = users?.filter(u => {
           if (userType === 'seeker') {
-            return u.user_type === 'seeker' || u.user_type === null;
+            return u.user_type === 'seeker';
           }
           return u.user_type === userType;
         }) || [];

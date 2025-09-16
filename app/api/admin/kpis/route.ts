@@ -7,16 +7,16 @@ export async function GET() {
   try {
     const supabase = supabaseServer();
 
-    // Get total users (deduplicated by phone number)
+    // Get all users for consistent counting
     const { data: allUsers } = await supabase
       .from('users')
       .select('phone_e164, user_type');
     
-    const uniquePhoneNumbers = new Set(allUsers?.map(u => u.phone_e164).filter(Boolean) || []);
-    const totalUsers = uniquePhoneNumbers.size;
+    // Count total users (all users, not just those with phone numbers)
+    const totalUsers = allUsers?.length || 0;
 
-    // Count users by type (seeker vs provider)
-    const seekers = allUsers?.filter(u => u.user_type === 'seeker' || u.user_type === null).length || 0;
+    // Count users by type (seeker vs provider) - match database logic exactly
+    const seekers = allUsers?.filter(u => u.user_type === 'seeker').length || 0;
     const providers = allUsers?.filter(u => u.user_type === 'provider').length || 0;
 
     // Get total providers (from provider table)
@@ -25,17 +25,16 @@ export async function GET() {
       .select('*', { count: 'exact', head: true });
     const totalProviders = (providerResponse as any)?.count || 0;
 
-    // Get new users in last 7 days (deduplicated by phone number)
+    // Get new users in last 7 days (all users, not just those with phone numbers)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     const { data: newUsersData } = await supabase
       .from('users')
-      .select('phone_e164')
+      .select('id')
       .gte('created_at', sevenDaysAgo.toISOString());
     
-    const newUniquePhoneNumbers = new Set(newUsersData?.map(u => u.phone_e164).filter(Boolean) || []);
-    const newUsers7d = newUniquePhoneNumbers.size;
+    const newUsers7d = newUsersData?.length || 0;
 
     // Get active users (users who have made recommendations or connections in last 24h)
     const oneDayAgo = new Date();
@@ -43,30 +42,24 @@ export async function GET() {
 
     const { data: recentRecommendations } = await supabase
       .from('recommendation')
-      .select(`
-        recommender_user_id,
-        users!recommendation_recommender_user_id_fkey(phone_e164)
-      `)
+      .select('recommender_user_id')
       .gte('created_at', oneDayAgo.toISOString());
 
-    const activePhoneNumbers = new Set(
-      recentRecommendations?.map((r: any) => r.users?.phone_e164).filter(Boolean) || []
+    const activeUserIds = new Set(
+      recentRecommendations?.map((r: any) => r.recommender_user_id).filter(Boolean) || []
     );
-    const activeUsersDAU = activePhoneNumbers.size;
+    const activeUsersDAU = activeUserIds.size;
 
     // Get active users in last 7 days
     const { data: recentRecommendations7d } = await supabase
       .from('recommendation')
-      .select(`
-        recommender_user_id,
-        users!recommendation_recommender_user_id_fkey(phone_e164)
-      `)
+      .select('recommender_user_id')
       .gte('created_at', sevenDaysAgo.toISOString());
 
-    const activePhoneNumbers7d = new Set(
-      recentRecommendations7d?.map((r: any) => r.users?.phone_e164).filter(Boolean) || []
+    const activeUserIds7d = new Set(
+      recentRecommendations7d?.map((r: any) => r.recommender_user_id).filter(Boolean) || []
     );
-    const activeUsersWAU = activePhoneNumbers7d.size;
+    const activeUsersWAU = activeUserIds7d.size;
 
     // Get active users in last 30 days
     const thirtyDaysAgo = new Date();
@@ -74,16 +67,13 @@ export async function GET() {
 
     const { data: recentRecommendations30d } = await supabase
       .from('recommendation')
-      .select(`
-        recommender_user_id,
-        users!recommendation_recommender_user_id_fkey(phone_e164)
-      `)
+      .select('recommender_user_id')
       .gte('created_at', thirtyDaysAgo.toISOString());
 
-    const activePhoneNumbers30d = new Set(
-      recentRecommendations30d?.map((r: any) => r.users?.phone_e164).filter(Boolean) || []
+    const activeUserIds30d = new Set(
+      recentRecommendations30d?.map((r: any) => r.recommender_user_id).filter(Boolean) || []
     );
-    const activeUsersMAU = activePhoneNumbers30d.size;
+    const activeUsersMAU = activeUserIds30d.size;
 
     // Get provider views in last 7 days (simulated - would need event logging)
     const providerViews7d = Math.floor(Math.random() * 100) + 50; // Placeholder
@@ -136,11 +126,11 @@ export async function GET() {
         const uniquePhones = new Set(dayUsers?.map(u => u.phone_e164).filter(Boolean) || []);
         let count = uniquePhones.size;
 
-        // Filter by user type if specified
+        // Filter by user type if specified - match database logic exactly
         if (userType && userType !== 'all') {
           const filteredUsers = dayUsers?.filter(u => {
             if (userType === 'seeker') {
-              return u.user_type === 'seeker' || u.user_type === null;
+              return u.user_type === 'seeker';
             }
             return u.user_type === userType;
           }) || [];

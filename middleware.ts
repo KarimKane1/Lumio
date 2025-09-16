@@ -14,8 +14,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Skip middleware for browser requests to admin pages
+  // Browser requests don't have authorization headers, so we let the client-side auth handle it
+  const userAgent = request.headers.get('user-agent') || '';
+  const isBrowserRequest = userAgent.includes('Mozilla') || userAgent.includes('Chrome') || userAgent.includes('Safari');
+  
+  if (isBrowserRequest) {
+    return NextResponse.next();
+  }
+
   try {
-    // Get the authorization header
+    // Get the authorization header (for API requests)
     const authorization = request.headers.get('authorization');
     
     if (!authorization) {
