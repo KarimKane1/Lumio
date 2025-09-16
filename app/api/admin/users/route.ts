@@ -83,7 +83,7 @@ export async function GET(req: Request) {
     const providerResponse = await supabase
       .from('provider')
       .select('*', { count: 'exact', head: true });
-    const providersCount = providerResponse.count || 0;
+    const providersCount = (providerResponse as any)?.count || 0;
 
     // Apply role filter
     let filteredUsers = usersWithRoles;
