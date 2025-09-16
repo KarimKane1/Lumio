@@ -387,7 +387,7 @@ export default function AdminProviders() {
                     <div className="mt-1 flex space-x-2">
                       <select
                         name="countryCode"
-                        defaultValue={selectedProvider.phone_e164?.startsWith('+221') ? '+221' : selectedProvider.phone_e164?.startsWith('+1') ? '+1' : '+221'}
+                        defaultValue={selectedProvider.phone?.startsWith('+221') ? '+221' : selectedProvider.phone?.startsWith('+1') ? '+1' : '+221'}
                         className="border border-gray-300 rounded-md px-3 py-2 w-20"
                       >
                         <option value="+221">+221</option>
@@ -398,7 +398,7 @@ export default function AdminProviders() {
                       <input
                         type="tel"
                         name="phoneNumber"
-                        defaultValue={selectedProvider.phone_e164?.replace(/^\+\d{1,3}/, '') || ''}
+                        defaultValue={selectedProvider.phone?.replace(/^\+\d{1,3}/, '') || ''}
                         placeholder="Phone number"
                         className="flex-1 border border-gray-300 rounded-md px-3 py-2"
                       />
