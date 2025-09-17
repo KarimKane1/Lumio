@@ -97,19 +97,28 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       // Status toggle not supported - provider table doesn't have is_active column
       return NextResponse.json({ error: 'Status toggle not supported for providers' }, { status: 400 });
     } else {
-      // Full update - use existing phone if not provided
-      const phoneToValidate = phone || decryptedPhone;
-      if (!name || !service_type || !city || !phoneToValidate) {
+      // Full update - validate required fields
+      if (!name || !service_type || !city) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
       }
 
-      // Validate and sanitize inputs
+      // Validate and sanitize inputs (phone is optional for updates)
       const validation = validateAndSanitize({
         name: { value: name, type: 'name' },
         service_type: { value: service_type, type: 'service_type' },
         city: { value: city, type: 'location' },
-        phone: { value: phoneToValidate, type: 'phone' },
       });
+
+      // Only validate phone if provided
+      if (phone) {
+        const phoneValidation = validateAndSanitize({
+          phone: { value: phone, type: 'phone' },
+        });
+        if (!phoneValidation.isValid) {
+          return NextResponse.json({ error: phoneValidation.errors.join(', ') }, { status: 400 });
+        }
+        validation.sanitized.phone = phoneValidation.sanitized.phone;
+      }
 
       if (!validation.isValid) {
         return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
@@ -148,7 +157,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       };
 
       // Only update phone if a new one was provided
-      if (phone) {
+      if (phone && validation.sanitized.phone) {
         // Generate phone hash and encrypt phone
         const phoneHash = crypto.createHash('sha256')
           .update(process.env.ENCRYPTION_KEY_HEX || 'jokko-default-salt')
@@ -165,7 +174,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
             const ciphertext = Buffer.concat([cipher.update(validation.sanitized.phone, 'utf8'), cipher.final()]);
             const tag = cipher.getAuthTag();
-            phoneEnc = Buffer.concat([iv, tag, ciphertext]);
+            const encryptedBuffer = Buffer.concat([iv, tag, ciphertext]);
+            // Save as hex string with \\x prefix (matching other APIs)
+            phoneEnc = `\\x${encryptedBuffer.toString('hex')}`;
           }
         } catch (error) {
           console.error('Error encrypting phone:', error);

@@ -15,6 +15,7 @@ interface Provider {
   owner_user_id: string;
   recommendation_count: number;
   phone?: string;
+  phone_e164?: string;
 }
 
 export default function AdminProviders() {
@@ -199,6 +200,9 @@ export default function AdminProviders() {
                       Location
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Phone
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Recommendations
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -237,6 +241,9 @@ export default function AdminProviders() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                         {provider.city || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                        {provider.phone_e164 || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -319,16 +326,23 @@ export default function AdminProviders() {
                 const phoneNumber = formData.get('phoneNumber') as string;
                 const fullPhone = countryCode + phoneNumber;
 
+                // Only include phone if a number was actually entered
+                const updateData: any = {
+                  name: formData.get('name'),
+                  service_type: formData.get('service_type'),
+                  city: formData.get('city'),
+                };
+
+                // Only add phone if the phone number field is not empty
+                if (phoneNumber && phoneNumber.trim() !== '') {
+                  updateData.phone = fullPhone;
+                }
+
                 try {
                   const response = await fetch(`/api/admin/providers/${selectedProvider.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      name: formData.get('name'),
-                      service_type: formData.get('service_type'),
-                      city: formData.get('city'),
-                      phone: fullPhone,
-                    }),
+                    body: JSON.stringify(updateData),
                   });
 
                   if (response.ok) {
@@ -363,14 +377,10 @@ export default function AdminProviders() {
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                     >
                       <option value="plumber">Plumber</option>
-                      <option value="cleaner">Cleaner</option>
-                      <option value="nanny">Nanny</option>
                       <option value="electrician">Electrician</option>
+                      <option value="hvac">HVAC</option>
                       <option value="carpenter">Carpenter</option>
-                      <option value="hair">Hair Stylist</option>
-                      <option value="henna">Henna Artist</option>
-                      <option value="chef">Chef</option>
-                      <option value="other">Other</option>
+                      <option value="handyman">Handyman</option>
                     </select>
                   </div>
                   <div>
@@ -387,7 +397,7 @@ export default function AdminProviders() {
                     <div className="mt-1 flex space-x-2">
                       <select
                         name="countryCode"
-                        defaultValue={selectedProvider.phone?.startsWith('+221') ? '+221' : selectedProvider.phone?.startsWith('+1') ? '+1' : '+221'}
+                        defaultValue={selectedProvider.phone_e164?.startsWith('+221') ? '+221' : selectedProvider.phone_e164?.startsWith('+1') ? '+1' : '+221'}
                         className="border border-gray-300 rounded-md px-3 py-2 w-20"
                       >
                         <option value="+221">+221</option>
@@ -398,7 +408,7 @@ export default function AdminProviders() {
                       <input
                         type="tel"
                         name="phoneNumber"
-                        defaultValue={selectedProvider.phone?.replace(/^\+\d{1,3}/, '') || ''}
+                        defaultValue={selectedProvider.phone_e164?.replace(/^\+\d{1,3}/, '') || ''}
                         placeholder="Phone number"
                         className="flex-1 border border-gray-300 rounded-md px-3 py-2"
                       />
@@ -485,6 +495,12 @@ export default function AdminProviders() {
                 const phoneNumber = formData.get('phoneNumber') as string;
                 const fullPhone = countryCode + phoneNumber;
 
+                // Validate that phone number is provided
+                if (!phoneNumber || phoneNumber.trim() === '') {
+                  alert('Phone number is required');
+                  return;
+                }
+
                 try {
                   const response = await fetch('/api/admin/providers', {
                     method: 'POST',
@@ -530,14 +546,10 @@ export default function AdminProviders() {
                     >
                       <option value="">Select service type</option>
                       <option value="plumber">Plumber</option>
-                      <option value="cleaner">Cleaner</option>
-                      <option value="nanny">Nanny</option>
                       <option value="electrician">Electrician</option>
+                      <option value="hvac">HVAC</option>
                       <option value="carpenter">Carpenter</option>
-                      <option value="hair">Hair Stylist</option>
-                      <option value="henna">Henna Artist</option>
-                      <option value="chef">Chef</option>
-                      <option value="other">Other</option>
+                      <option value="handyman">Handyman</option>
                     </select>
                   </div>
                   <div>

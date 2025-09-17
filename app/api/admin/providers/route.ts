@@ -187,7 +187,11 @@ export async function POST(req: Request) {
         const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
         const ciphertext = Buffer.concat([cipher.update(validation.sanitized.phone, 'utf8'), cipher.final()]);
         const tag = cipher.getAuthTag();
-        phoneEnc = Buffer.concat([iv, tag, ciphertext]);
+        const encryptedBuffer = Buffer.concat([iv, tag, ciphertext]);
+        // Save as hex string with \\x prefix (matching other APIs)
+        phoneEnc = `\\x${encryptedBuffer.toString('hex')}`;
+      } else {
+        console.log('ENCRYPTION_KEY_HEX is invalid, skipping encryption');
       }
     } catch (error) {
       console.error('Error encrypting phone:', error);
