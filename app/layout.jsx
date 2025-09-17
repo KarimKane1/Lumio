@@ -5,7 +5,7 @@ import { AuthProvider } from "../context/AuthContext";
 import { I18nProvider } from "../context/I18nContext";
 import LanguageGate from "../components/LanguageGate";
 
-export const metadata = { title: "Jokko", description: "Provider recommendations" };
+export const metadata = { title: "Lumio", description: "Provider recommendations" };
 
 export default function RootLayout({ children }) {
   return (

@@ -256,7 +256,7 @@ const en: Messages = {
   'provider.step2': 'They can add you to their trusted providers even without an account',
   'provider.step3': 'More recommendations mean more visibility to their network',
   'provider.saving': 'Saving...',
-  'provider.welcomeToJokko': 'Welcome to Jokko!',
+  'provider.welcomeToJokko': 'Welcome to Lumio!',
   'provider.autoRecommendations': 'If people recommended your services before you joined, they\'ll appear here automatically.',
   'provider.gotIt': 'Got it',
   // Service provider recommendation translations
@@ -521,7 +521,7 @@ const fr: Messages = {
   'provider.step2': 'Ils peuvent vous ajouter à leurs prestataires de confiance même sans compte',
   'provider.step3': 'Plus de recommandations signifie plus de visibilité dans leur réseau',
   'provider.saving': 'Sauvegarde...',
-  'provider.welcomeToJokko': 'Bienvenue sur Jokko !',
+  'provider.welcomeToJokko': 'Bienvenue sur Lumio !',
   'provider.autoRecommendations': 'Si des personnes ont recommandé vos services avant votre inscription, elles apparaîtront ici automatiquement.',
   'provider.gotIt': 'Compris',
   // Service provider recommendation translations
@@ -786,7 +786,7 @@ const wo: Messages = {
   'provider.step2': 'Ñu mën la yokk ci seen sarwiis yu gëm teewul amul koont',
   'provider.step3': 'Ndigaal yu bare tekki wone yu bare ci seen réseau',
   'provider.saving': 'Jàpp...',
-  'provider.welcomeToJokko': 'Nuyoo ci Jokko !',
+  'provider.welcomeToJokko': 'Nuyoo ci Lumio !',
   'provider.autoRecommendations': 'Su nit ñi dañu la ndiggal ci ndaxal sa liggéey, dinañu feeñ ci fii ci boppam.',
   'provider.gotIt': 'Fàttalik',
   // Service provider recommendation translations
