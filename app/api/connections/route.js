@@ -61,7 +61,7 @@ export async function GET(req) {
         .from('connection_request')
         .select('id,recipient_user_id,created_at,status')
         .eq('requester_user_id', userId)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'approved'])
         .limit(50);
       if (reqErr) throw reqErr;
       console.log('Found sent requests:', reqs?.length || 0);
@@ -93,18 +93,45 @@ export async function GET(req) {
   }
 
   if (wantsNetwork && userId) {
-    // Return current user's connections
-    const { data, error } = await supabase
+    // Return current user's connections - handle both schema versions
+    let data, error;
+    
+    // Try the new schema first (user_a_id, user_b_id)
+    const { data: newData, error: newError } = await supabase
       .from('connection')
-      .select('user1_id,user2_id')
-      .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+      .select('user_a_id,user_b_id')
+      .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`);
+    
+    if (newError && newError.message.includes('column') && newError.message.includes('does not exist')) {
+      // Fall back to old schema (user1_id, user2_id)
+      console.log('Falling back to old schema (user1_id, user2_id)');
+      const { data: oldData, error: oldError } = await supabase
+        .from('connection')
+        .select('user1_id,user2_id')
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+      data = oldData;
+      error = oldError;
+    } else {
+      data = newData;
+      error = newError;
+    }
     
     if (error) {
       console.error('Connection query error:', error);
       return NextResponse.json({ error: error.message, details: error }, { status: 500 });
     }
+    
+    // Handle both schema versions
     const otherIds = new Set(
-      (data || []).map((r) => (r.user1_id === userId ? r.user2_id : r.user1_id))
+      (data || []).map((r) => {
+        if (r.user_a_id !== undefined) {
+          // New schema
+          return r.user_a_id === userId ? r.user_b_id : r.user_a_id;
+        } else {
+          // Old schema
+          return r.user1_id === userId ? r.user2_id : r.user1_id;
+        }
+      })
     );
     
     // If no connections, return empty array instead of error
