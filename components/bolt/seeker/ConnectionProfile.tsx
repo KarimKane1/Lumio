@@ -94,7 +94,9 @@ export default function ConnectionProfile({ connection, onBack }: ConnectionProf
 
   // Get translated quality attribute
   const getTranslatedQuality = (quality: string) => {
+    // Handle both English text and translation keys
     const qualityMap: { [key: string]: string } = {
+      // English text mappings
       'Job quality': t('recs.jobQuality'),
       'Timeliness': t('recs.timeliness'),
       'Clean & Organized': t('recs.cleanOrganized'),
@@ -104,7 +106,18 @@ export default function ConnectionProfile({ connection, onBack }: ConnectionProf
       'Expensive': t('recs.expensive'),
       'Limited availability': t('recs.limitedAvailability'),
       'Punctuality': t('recs.punctuality'),
-      'Communication': t('recs.communication')
+      'Communication': t('recs.communication'),
+      // Translation key mappings (fallback)
+      'quality.jobQuality': t('recs.jobQuality'),
+      'quality.timeliness': t('recs.timeliness'),
+      'quality.cleanOrganized': t('recs.cleanOrganized'),
+      'quality.professional': t('recs.professional'),
+      'quality.reliableTrustworthy': t('recs.reliableTrustworthy'),
+      'quality.fairPricing': t('recs.fairPricing'),
+      'quality.expensive': t('recs.expensive'),
+      'quality.limitedAvailability': t('recs.limitedAvailability'),
+      'quality.punctuality': t('recs.punctuality'),
+      'quality.communication': t('recs.communication')
     };
     
     return qualityMap[quality] || quality;
