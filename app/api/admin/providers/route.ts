@@ -94,6 +94,9 @@ export async function GET(req: Request) {
     const providers = response.data;
     const error = response.error;
     const count = (response as any)?.count || 0;
+    
+    console.log('Provider tab - Total providers count:', count);
+    console.log('Provider tab - Providers returned:', providers?.length);
 
     if (error) {
       console.error('Error fetching providers:', error);

@@ -7,23 +7,73 @@ export async function GET() {
   try {
     const supabase = supabaseServer();
 
-    // Get all users for consistent counting
+    // Get all users for consistent counting (match users endpoint logic)
     const { data: allUsers } = await supabase
       .from('users')
-      .select('phone_e164, user_type');
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // Deduplicate by phone number (keep the most recent record for each phone number)
+    const phoneMap = new Map();
+    allUsers?.forEach(user => {
+      if (user.phone_e164) {
+        if (!phoneMap.has(user.phone_e164) || new Date(user.created_at) > new Date(phoneMap.get(user.phone_e164).created_at)) {
+          phoneMap.set(user.phone_e164, user);
+        }
+      } else {
+        // Keep users without phone numbers (they'll be unique by ID anyway)
+        phoneMap.set(user.id, user);
+      }
+    });
+
+    const uniqueUsers = Array.from(phoneMap.values());
     
-    // Count total users (all users, not just those with phone numbers)
-    const totalUsers = allUsers?.length || 0;
+    // Add role detection for each user - match users endpoint logic exactly
+    const usersWithRoles = await Promise.all(uniqueUsers.map(async (user) => {
+      // Use explicit user_type from database, matching the users endpoint logic
+      let userRole = 'seeker'; // Default
+      
+      if (user.user_type === 'provider') {
+        userRole = 'provider';
+      } else if (user.user_type === 'seeker') {
+        userRole = 'seeker';
+      } else {
+        // For users with null user_type, check if they have recommendations (provider role)
+        const { data: recommendations } = await supabase
+          .from('recommendation')
+          .select('id')
+          .eq('recommender_user_id', user.id)
+          .limit(1);
+        
+        userRole = recommendations && recommendations.length > 0 ? 'provider' : 'seeker';
+      }
 
-    // Count users by type (seeker vs provider) - match database logic exactly
-    const seekers = allUsers?.filter(u => u.user_type === 'seeker').length || 0;
-    const providers = allUsers?.filter(u => u.user_type === 'provider').length || 0;
+      return {
+        ...user,
+        role: userRole
+      };
+    }));
 
-    // Get total providers (from provider table)
+    // Calculate counts by role (match users endpoint logic)
+    const seekers = usersWithRoles.filter(u => u.role === 'seeker').length;
+    
+    // Get actual provider count from provider table (use exact same query as provider tab)
     const providerResponse = await supabase
       .from('provider')
-      .select('*', { count: 'exact', head: true });
-    const totalProviders = (providerResponse as any)?.count || 0;
+      .select(`
+        *,
+        recommendation_count:recommendation(count)
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false });
+    const providers = (providerResponse as any)?.count || 0;
+    
+    console.log('Dashboard - Provider count from provider table:', providers);
+    
+    // Total users should be seekers + providers
+    const totalUsers = seekers + providers;
+
+    // Use the same provider count for totalProviders
+    const totalProviders = providers;
 
     // Get new users in last 7 days (all users, not just those with phone numbers)
     const sevenDaysAgo = new Date();
