@@ -495,7 +495,7 @@ const fr: Messages = {
   'category.all': 'Tous',
   'category.plumber': 'Plombier',
   'category.electrician': 'Électricien',
-  'category.hvac': 'CVC',
+  'category.hvac': 'Frigoriste',
   'category.carpenter': 'Menuisier',
   'category.handyman': 'Bricoleur',
   // Provider-specific translations
@@ -760,7 +760,7 @@ const wo: Messages = {
   'category.all': 'Lépp',
   'category.plumber': 'Plombie',
   'category.electrician': 'Elekterisyaan',
-  'category.hvac': 'CVC',
+  'category.hvac': 'Frigoriste',
   'category.carpenter': 'Serñ kat',
   'category.handyman': 'Jëfandikoo',
   // Provider-specific translations
