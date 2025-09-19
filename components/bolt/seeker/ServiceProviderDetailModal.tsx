@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, MapPin, Phone, MessageCircle } from 'lucide-react';
 import { useProvider } from '../../../hooks/providers';
 import { useAuth } from '../../context/AuthContext';
@@ -28,6 +28,31 @@ export default function ServiceProviderDetailModal({ provider, onClose }: Servic
   const { t } = useI18n();
   const { data } = useProvider(provider.id);
   const detail = data || {} as any;
+
+  // Track provider view when modal opens
+  useEffect(() => {
+    const trackProviderView = async () => {
+      try {
+        await fetch('/api/track-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventType: 'provider_view',
+            payload: {
+              provider_id: provider.id,
+              provider_name: provider.name,
+              service_type: provider.serviceType,
+              user_id: user?.id
+            }
+          })
+        });
+      } catch (error) {
+        console.error('Failed to track provider view:', error);
+      }
+    };
+
+    trackProviderView();
+  }, [provider.id, provider.name, provider.serviceType, user?.id]);
 
   // Get translated service type name
   const getTranslatedServiceType = (serviceType: string) => {
@@ -78,6 +103,27 @@ export default function ServiceProviderDetailModal({ provider, onClose }: Servic
   };
 
   const handleWhatsAppContact = async () => {
+    // Track the contact click event
+    try {
+      await fetch('/api/track-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'contact_click',
+          payload: {
+            provider_id: provider.id,
+            provider_name: provider.name,
+            service_type: provider.serviceType,
+            contact_method: 'whatsapp',
+            user_id: user?.id,
+            user_name: user?.name
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track contact click:', error);
+    }
+    
     if (detail.whatsapp_intent) {
       window.open(`${detail.whatsapp_intent}?text=${encodeURIComponent(`Hi ${provider.name}, I found you through Lumio, it's an app for friends to refer ${provider.serviceType.toLowerCase()} they like. I would like to inquire about your ${provider.serviceType.toLowerCase()} services.`)}`, '_blank');
       return;

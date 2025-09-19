@@ -12,6 +12,26 @@ export default function ServiceProviderCard({ provider, onViewDetails, onContact
       onContact();
       return;
     }
+    
+    // Track the contact click event
+    try {
+      await fetch('/api/track-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'contact_click',
+          payload: {
+            provider_id: provider.id,
+            provider_name: provider.name,
+            service_type: provider.service_type || provider.serviceType,
+            contact_method: 'whatsapp'
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track contact click:', error);
+    }
+    
     const message = `Hi ${provider.name}, I found you through Lumio, it's an app for friends to refer ${String(provider.service_type || provider.serviceType || '').toLowerCase()} they like. I would like to inquire about your ${String(provider.service_type || provider.serviceType || '').toLowerCase()} services.`;
     
     // Use whatsapp_intent if available

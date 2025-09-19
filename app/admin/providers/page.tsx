@@ -534,7 +534,7 @@ export default function AdminProviders() {
                       type="text"
                       name="name"
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     />
                   </div>
                   <div>
@@ -542,7 +542,7 @@ export default function AdminProviders() {
                     <select
                       name="service_type"
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     >
                       <option value="">Select service type</option>
                       <option value="plumber">Plumber</option>
@@ -558,7 +558,7 @@ export default function AdminProviders() {
                       <select
                         name="countryCode"
                         required
-                        className="border border-gray-300 rounded-md px-3 py-2 w-20"
+                        className="border border-gray-300 rounded-md px-3 py-2 w-20 text-gray-900"
                       >
                         <option value="+221">+221</option>
                         <option value="+1">+1</option>
@@ -570,7 +570,7 @@ export default function AdminProviders() {
                         name="phoneNumber"
                         required
                         placeholder="Phone number"
-                        className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                       />
                     </div>
                   </div>

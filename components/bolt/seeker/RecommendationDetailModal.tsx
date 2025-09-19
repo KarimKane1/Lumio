@@ -89,6 +89,27 @@ export default function RecommendationDetailModal({ recommendation, onClose, onE
     return qualityMap[quality] || quality;
   };
   const handleWhatsAppContact = async () => {
+    // Track the contact click event
+    try {
+      await fetch('/api/track-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'contact_click',
+          payload: {
+            provider_id: (recommendation as any).providerId || recommendation.id,
+            provider_name: recommendation.name,
+            service_type: recommendation.serviceType,
+            contact_method: 'whatsapp',
+            user_id: user?.id,
+            user_name: user?.name
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track contact click:', error);
+    }
+    
     const message = `Hi ${recommendation.name}, I found you through Lumio, it's an app for friends to refer ${recommendation.serviceType.toLowerCase()} they like. I would like to inquire about your ${recommendation.serviceType.toLowerCase()} services.`;
     // Prefer a precomputed intent from the API if present
     const preIntent = (recommendation as any).whatsapp_intent as string | undefined;
