@@ -61,10 +61,117 @@ export async function GET(req) {
   
   // Get the current user to filter recommendations by network
   const { data: { user } } = await supabase.auth.getUser();
-  let query = supabase
+  
+  // First, get providers recommended by user's network connections
+  let networkRecommendedProviders = [];
+  if (user?.id) {
+    // Get user's connections - handle both schema versions
+    let connections, connectionError;
+    
+    // Try the new schema first (user_a_id, user_b_id)
+    const { data: newConnections, error: newError } = await supabase
+      .from('connection')
+      .select('user_a_id,user_b_id')
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`);
+    
+    if (newError && newError.message.includes('column') && newError.message.includes('does not exist')) {
+      // Fall back to old schema (user_id, connected_user_id)
+      console.log('Providers API: Falling back to old schema (user_id, connected_user_id)');
+      const { data: oldConnections, error: oldError } = await supabase
+        .from('connection')
+        .select('connected_user_id')
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
+      connections = oldConnections;
+      connectionError = oldError;
+    } else {
+      connections = newConnections;
+      connectionError = newError;
+    }
+    
+    if (connectionError) {
+      console.error('Connection query error in providers API:', connectionError);
+      connections = [];
+    }
+    
+    // Handle both schema versions
+    const connectionIds = connections?.map(c => {
+      if (c.user_a_id !== undefined) {
+        // New schema
+        return c.user_a_id === user.id ? c.user_b_id : c.user_a_id;
+      } else {
+        // Old schema
+        return c.connected_user_id;
+      }
+    }).filter(Boolean) || [];
+    
+    console.log('Network recommendations debug:', {
+      userId: user.id,
+      connections: connections?.length || 0,
+      connectionIds: connectionIds
+    });
+    
+    if (connectionIds.length > 0) {
+      // Get providers recommended by connections
+      const { data: networkRecs } = await supabase
+        .from('recommendation')
+        .select('provider_id,recommender_user_id')
+        .in('recommender_user_id', connectionIds);
+      
+      console.log('Network recommendations found:', {
+        networkRecs: networkRecs?.length || 0,
+        recs: networkRecs
+      });
+      
+      const networkProviderIds = [...new Set(networkRecs?.map(r => r.provider_id) || [])];
+      
+      console.log('Network provider IDs:', networkProviderIds);
+      
+      if (networkProviderIds.length > 0) {
+        // Get network recommended providers with filters
+        let networkQuery = supabase
+          .from('provider')
+          .select('id,name,service_type,city,photo_url')
+          .in('id', networkProviderIds);
+        
+        if (q) networkQuery = networkQuery.ilike('name', `%${q}%`);
+        if (service) {
+          const slug = String(service).toLowerCase().replace(/[^a-z]+/g, '_');
+          const map = {
+            plumber: 'plumber',
+            cleaner: 'cleaner',
+            nanny: 'nanny',
+            electrician: 'electrician',
+            carpenter: 'carpenter',
+            hair: 'hair',
+            henna: 'henna',
+            chef: 'chef',
+          };
+          if (map[slug]) {
+            networkQuery = networkQuery.eq('service_type', map[slug]);
+          }
+        }
+        if (city) networkQuery = networkQuery.eq('city', city);
+        
+        const { data: networkData } = await networkQuery;
+        networkRecommendedProviders = networkData || [];
+      }
+    }
+  }
+  
+  // Then get all other providers (excluding network recommended ones)
+  let otherProviders = [];
+  
+  let otherQuery = supabase
     .from('provider')
     .select('id,name,service_type,city,photo_url');
-  if (q) query = query.ilike('name', `%${q}%`);
+  
+  if (networkRecommendedProviders.length > 0) {
+    const networkProviderIds = networkRecommendedProviders.map(p => p.id);
+    otherQuery = otherQuery.not('id', 'in', `(${networkProviderIds.join(',')})`);
+  }
+  
+  if (q) otherQuery = otherQuery.ilike('name', `%${q}%`);
   if (service) {
     const slug = String(service).toLowerCase().replace(/[^a-z]+/g, '_');
     const map = {
@@ -78,18 +185,77 @@ export async function GET(req) {
       chef: 'chef',
     };
     if (map[slug]) {
-      query = query.eq('service_type', map[slug]);
+      otherQuery = otherQuery.eq('service_type', map[slug]);
     }
   }
-  if (city) query = query.eq('city', city);
-  query = query.range(from, to);
-  const { data, error } = await query;
+  if (city) otherQuery = otherQuery.eq('city', city);
+  
+  // Apply pagination to other providers
+  otherQuery = otherQuery.range(from, to);
+  const { data: otherData, error } = await otherQuery;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Combine providers: network recommended first, then others (randomly shuffled)
+  const shuffledOthers = (otherData || []).sort(() => Math.random() - 0.5);
+  
+  // Deduplicate providers by ID to prevent duplicates
+  const networkProviderIds = networkRecommendedProviders.map(p => p.id);
+  const filteredOthers = shuffledOthers.filter(p => !networkProviderIds.includes(p.id));
+  
+  const allProviders = [...networkRecommendedProviders, ...filteredOthers];
+  
+  // Apply pagination to the combined list
+  const paginatedProviders = allProviders.slice(from, to + 1);
+
+  // Get connection IDs for filtering recommenders (reuse the same logic)
+  let connectionIds = [];
+  if (user?.id) {
+    // Reuse the same connection logic as above
+    let connections, connectionError;
+    
+    // Try the new schema first (user_a_id, user_b_id)
+    const { data: newConnections, error: newError } = await supabase
+      .from('connection')
+      .select('user_a_id,user_b_id')
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`);
+    
+    if (newError && newError.message.includes('column') && newError.message.includes('does not exist')) {
+      // Fall back to old schema (user_id, connected_user_id)
+      const { data: oldConnections, error: oldError } = await supabase
+        .from('connection')
+        .select('connected_user_id')
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
+      connections = oldConnections;
+      connectionError = oldError;
+    } else {
+      connections = newConnections;
+      connectionError = newError;
+    }
+    
+    if (connectionError) {
+      console.error('Connection query error in recommenders filter:', connectionError);
+      connections = [];
+    }
+    
+    // Handle both schema versions
+    connectionIds = connections?.map(c => {
+      if (c.user_a_id !== undefined) {
+        // New schema
+        return c.user_a_id === user.id ? c.user_b_id : c.user_a_id;
+      } else {
+        // Old schema
+        return c.connected_user_id;
+      }
+    }).filter(Boolean) || [];
+  }
+  
+  // networkProviderIds is already defined above
 
   // Attach simple aggregates: top 2 likes and notes per provider
   // For performance, this is a naive per-row fetch for MVP
   const items = await Promise.all(
-    (data || []).map(async (prov) => {
+    paginatedProviders.map(async (prov) => {
       // Get likes from recommendation notes instead of votes table
       const { data: recs } = await supabase
         .from('recommendation')
@@ -119,29 +285,47 @@ export async function GET(req) {
       const topWatch = Array.from(watchCounts.entries()).sort((a,b)=>b[1]-a[1]).map(([k])=>k);
       
       // Get recommenders data - filter by network connections
-      // For now, since we don't have a proper connection system, 
-      // we'll only show recommendations from the current user themselves
       let recommenders = (recs || []).map(rec => ({
         id: rec.recommender_user_id,
         name: rec.users?.name || 'Unknown'
       })).filter(rec => rec.name !== 'Unknown');
       
-      // For now, show all recommendations since authentication isn't working properly
-      // TODO: Implement proper authentication and network filtering
-      console.log('Provider:', prov.name, 'All recommenders:', recommenders.map(r => ({ id: r.id, name: r.name })));
+      // Filter to only show network recommenders (connections)
+      if (user?.id && connectionIds && connectionIds.length > 0) {
+        recommenders = recommenders.filter(rec => connectionIds.includes(rec.id));
+      }
       
-      // Keep all recommenders for now - the frontend will handle filtering if needed
-      recommenders = recommenders;
+      console.log('Provider:', prov.name, 'Network recommenders:', recommenders.map(r => ({ id: r.id, name: r.name })));
+      
+      // Check if this provider is network recommended
+      const isNetworkRecommended = networkProviderIds.includes(prov.id);
       
       return {
         ...prov,
         top_likes: Array.from(new Set(likes)).slice(0, 3),
         top_watch: topWatch.slice(0, 2),
         recommenders: recommenders,
+        isNetworkRecommended: isNetworkRecommended,
+        networkRecommenders: isNetworkRecommended ? recommenders : []
       };
     })
   );
-  return NextResponse.json({ items, page, pageSize });
+  console.log('Final API response:', {
+    totalProviders: allProviders.length,
+    networkRecommended: networkRecommendedProviders.length,
+    others: filteredOthers.length,
+    finalItems: items.length,
+    networkProviderNames: networkRecommendedProviders.map(p => p.name)
+  });
+
+  return NextResponse.json({ 
+    items, 
+    page, 
+    pageSize,
+    total: allProviders.length,
+    networkRecommended: networkRecommendedProviders.length,
+    others: filteredOthers.length
+  });
 }
 
 

@@ -28,7 +28,7 @@ export default function ServicesTab() {
   const liveProviders = (data?.items as any[]) || [];
   
   // Debug: Log the raw provider data
-  // Combine mock providers with providers from accepted connections
+  // Map providers from API response
   const mappedLive = liveProviders.map((p: any) => ({
     id: p.id,
     name: p.name,
@@ -37,11 +37,11 @@ export default function ServicesTab() {
     avatar: p.photo_url || 'https://placehold.co/64x64',
     phone: '',
     recommendedBy: undefined,
-    // Filter out recommendations from the current user
+    // Use the recommenders from API (already filtered by network)
     recommenders: (p.recommenders || [])
       .map((r: any) => ({ id: r.id, name: r.name }))
       .filter((r: any) => r.id !== user?.id), // Don't show current user's own recommendations
-    isNetworkRecommendation: true,
+    isNetworkRecommendation: p.isNetworkRecommended || false,
     qualities: (p.top_likes || []).slice(0, 3),
     watchFor: (p.top_watch || []).slice(0, 2),
   }));
