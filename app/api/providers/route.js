@@ -157,11 +157,29 @@ export async function GET(req) {
         if (city) networkQuery = networkQuery.eq('city', city);
         
         const { data: networkData } = await networkQuery;
-        networkRecommendedProviders = networkData || [];
         
-        console.log('Network recommended providers after filtering:', {
+        // Count recommendations per provider and sort by count
+        const providerRecommendationCounts = new Map();
+        for (const rec of networkRecs || []) {
+          const count = providerRecommendationCounts.get(rec.provider_id) || 0;
+          providerRecommendationCounts.set(rec.provider_id, count + 1);
+        }
+        
+        // Sort network providers by recommendation count (highest first)
+        networkRecommendedProviders = (networkData || []).sort((a, b) => {
+          const countA = providerRecommendationCounts.get(a.id) || 0;
+          const countB = providerRecommendationCounts.get(b.id) || 0;
+          return countB - countA; // Higher count first
+        });
+        
+        console.log('Network recommended providers after filtering and sorting:', {
           count: networkRecommendedProviders.length,
-          providers: networkRecommendedProviders.map(p => ({ id: p.id, name: p.name, service_type: p.service_type }))
+          providers: networkRecommendedProviders.map(p => ({ 
+            id: p.id, 
+            name: p.name, 
+            service_type: p.service_type,
+            recommendationCount: providerRecommendationCounts.get(p.id) || 0
+          }))
         });
       }
     }
