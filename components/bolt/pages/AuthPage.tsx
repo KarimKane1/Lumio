@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Users, Shield, Zap, UserCheck, Briefcase, Phone, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Users, Shield, Zap, UserCheck, Briefcase, Phone, Lock, User, Eye, EyeOff, Search, Share2, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../../../context/I18nContext';
 
@@ -80,6 +80,7 @@ export default function AuthPage() {
     try {
       await signup({
         ...signUpData,
+        userType: 'seeker',
         city: 'Dakar',
         language: lang,
       });
@@ -87,10 +88,10 @@ export default function AuthPage() {
       if (returnTo) {
         router.replace(returnTo);
       } else {
-        router.replace(signUpData.userType === 'provider' ? '/provider/profile' : '/seeker/services');
+        router.replace('/seeker/services');
       }
     } catch (err: any) {
-      setSubmitError(err?.message || 'Sign up failed. Please try again.');
+      setSubmitError(err?.message || t('auth.signupFailed') || 'Sign up failed. Please try again.');
     }
   };
   
@@ -101,15 +102,15 @@ export default function AuthPage() {
     
     try {
       const fullPhone = `${signInData.countryCode}${signInData.phone}`;
-      await loginWithPhone(fullPhone, signInData.password, userType);
+      await loginWithPhone(fullPhone, signInData.password, 'seeker');
       const returnTo = searchParams?.get('returnTo');
       if (returnTo) {
         router.replace(returnTo);
       } else {
-        router.replace(userType === 'provider' ? '/provider/profile' : '/seeker/services');
+        router.replace('/seeker/services');
       }
     } catch (err: any) {
-      setSubmitError(err?.message || 'Sign in failed. Please check credentials.');
+      setSubmitError(err?.message || t('auth.signinFailed') || 'Sign in failed. Please check credentials.');
     }
   };
 
@@ -151,36 +152,6 @@ export default function AuthPage() {
 
           <form onSubmit={handleSignUp} className="space-y-4">
             {/* Avatar handled later in Profile tab. Default initial will be used. */}
-            {/* User Type Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.iAm') || 'I am a'}</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSignUpData({ ...signUpData, userType: 'seeker' })}
-                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                    signUpData.userType === 'seeker'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-400 hover:bg-gray-100'
-                  }`}
-                >
-                  <UserCheck className="w-5 h-5 mx-auto mb-1" />
-                  {t('role.seeker') || 'Seeker'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSignUpData({ ...signUpData, userType: 'provider' })}
-                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                    signUpData.userType === 'provider'
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-400 hover:bg-gray-100'
-                  }`}
-                >
-                  <Briefcase className="w-5 h-5 mx-auto mb-1" />
-                  {t('role.provider') || 'Provider'}
-                </button>
-              </div>
-            </div>
 
             {/* Name */}
             <div>
@@ -322,36 +293,6 @@ export default function AuthPage() {
             {/* Language is selected on profile after signup; no toggle here */}
           </div>
 
-          {/* User Type Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.iAm') || 'I am a'}</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setUserType('seeker')}
-                className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                  userType === 'seeker'
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                    : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-400 hover:bg-gray-100'
-                }`}
-              >
-                <UserCheck className="w-5 h-5 mx-auto mb-1" />
-                {t('role.seeker') || 'Seeker'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserType('provider')}
-                className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                  userType === 'provider'
-                    ? 'border-green-500 bg-green-50 text-green-700'
-                    : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-400 hover:bg-gray-100'
-                }`}
-              >
-                <Briefcase className="w-5 h-5 mx-auto mb-1" />
-                {t('role.provider') || 'Provider'}
-              </button>
-            </div>
-          </div>
 
           <form onSubmit={handleSignIn} className="space-y-4">
             {/* Phone Number */}
@@ -492,7 +433,7 @@ export default function AuthPage() {
               <h1 className="text-4xl font-bold text-gray-900 ml-3">{t('app.title')}</h1>
             </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto px-4">
-              {t('app.subtitle') || 'Find trusted service providers through recommendations from friends and family'}
+              {t('landing.tagline') || 'Find and share reliable plumbers, electricians, HVAC, carpenter and handyman'}
             </p>
           </div>
 
@@ -500,24 +441,24 @@ export default function AuthPage() {
           <div className="grid md:grid-cols-3 gap-8 mb-16">
             <div className="text-center p-8 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl shadow-lg border-2 border-indigo-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="bg-indigo-600 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                <Users className="w-10 h-10 text-white" />
+                <Search className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-indigo-900 mb-4">{t('landing.trusted') || 'Lumio Networks'}</h3>
-              <p className="text-indigo-800 text-lg leading-relaxed">{t('landing.trustedText') || 'Build your network of trusted service providers and connections'}</p>
+              <h3 className="text-2xl font-bold text-indigo-900 mb-4">{t('landing.trusted') || 'Find Providers'}</h3>
+              <p className="text-indigo-800 text-lg leading-relaxed">{t('landing.trustedText') || 'Browse names, click to whatsapp or call directly'}</p>
             </div>
             <div className="text-center p-8 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl shadow-lg border-2 border-green-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="bg-green-600 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                <Shield className="w-10 h-10 text-white" />
+                <Share2 className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-green-900 mb-4">{t('landing.verified') || 'Verified Recommendations'}</h3>
-              <p className="text-green-800 text-lg leading-relaxed">{t('landing.verifiedText') || 'Get recommendations from people you trust in your network'}</p>
+              <h3 className="text-2xl font-bold text-green-900 mb-4">{t('landing.verified') || 'Share Providers'}</h3>
+              <p className="text-green-800 text-lg leading-relaxed">{t('landing.verifiedText') || 'Add your trusted service providers'}</p>
             </div>
             <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl shadow-lg border-2 border-purple-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="bg-purple-600 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                <Zap className="w-10 h-10 text-white" />
+                <MessageSquare className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-purple-900 mb-4">{t('landing.quick') || 'Quick Connect'}</h3>
-              <p className="text-purple-800 text-lg leading-relaxed">{t('landing.quickText') || 'Instantly connect with service providers via WhatsApp'}</p>
+              <h3 className="text-2xl font-bold text-purple-900 mb-4">{t('landing.quick') || 'Community Notes'}</h3>
+              <p className="text-purple-800 text-lg leading-relaxed">{t('landing.quickText') || 'See pros and cons of each provider from the Lumio Community'}</p>
             </div>
           </div>
 
