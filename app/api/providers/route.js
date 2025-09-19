@@ -146,6 +146,8 @@ export async function GET(req) {
             hair: 'hair',
             henna: 'henna',
             chef: 'chef',
+            hvac: 'hvac',
+            handyman: 'handyman'
           };
           if (map[slug]) {
             networkQuery = networkQuery.eq('service_type', map[slug]);
@@ -155,6 +157,11 @@ export async function GET(req) {
         
         const { data: networkData } = await networkQuery;
         networkRecommendedProviders = networkData || [];
+        
+        console.log('Network recommended providers after filtering:', {
+          count: networkRecommendedProviders.length,
+          providers: networkRecommendedProviders.map(p => ({ id: p.id, name: p.name, service_type: p.service_type }))
+        });
       }
     }
   }
@@ -183,6 +190,8 @@ export async function GET(req) {
       hair: 'hair',
       henna: 'henna',
       chef: 'chef',
+      hvac: 'hvac',
+      handyman: 'handyman'
     };
     if (map[slug]) {
       otherQuery = otherQuery.eq('service_type', map[slug]);
