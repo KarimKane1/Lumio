@@ -33,11 +33,8 @@ export async function trackEvent(
   payload?: EventPayload
 ): Promise<void> {
   try {
-    // Only track in production or when explicitly enabled
-    if (process.env.NODE_ENV === 'development' && !process.env.ENABLE_ANALYTICS) {
-      console.log('Event tracking (dev mode):', { eventType, userId, payload });
-      return;
-    }
+    // Always track events (removed development mode restriction)
+    console.log('Event tracking:', { eventType, userId, payload });
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

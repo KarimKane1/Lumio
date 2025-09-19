@@ -1,8 +1,3 @@
-[33m081e20e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Simplify next.config and enhance Supabase stubs with comprehensive method coverage
-[33m3209b13[m Aggressively disable static generation with multiple config options
-[33m5777b60[m Fix from method to accept table parameter in trackEvent stub
-[33mbc8ea4f[m Fix getUser method to accept token parameter
-[33md844fe6[m Fix signInWithPassword method to accept credentials parameter
 
                    SSUUMMMMAARRYY OOFF LLEESSSS CCOOMMMMAANNDDSS
 
@@ -301,5 +296,3 @@
  TAB ...................................... Complete filename & cycle.
  SHIFT-TAB ...................... ESC-TAB   Complete filename & reverse cycle.
  ctrl-L ................................... Complete filename, list all.
-  development[m
-* [32mmain[m

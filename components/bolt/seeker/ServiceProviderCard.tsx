@@ -108,6 +108,33 @@ export default function ServiceProviderCard({ provider, onViewDetails, onContact
       onContact();
       return;
     }
+    
+    // Track the contact click event
+    try {
+      console.log('Tracking contact click for provider:', provider.name);
+      const response = await fetch('/api/track-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'contact_click',
+          payload: {
+            provider_id: provider.id,
+            provider_name: provider.name,
+            service_type: provider.serviceType,
+            contact_method: 'whatsapp'
+          }
+        })
+      });
+      
+      if (response.ok) {
+        console.log('Contact click tracked successfully');
+      } else {
+        console.error('Failed to track contact click:', await response.text());
+      }
+    } catch (error) {
+      console.error('Failed to track contact click:', error);
+    }
+    
     const message = `Hi ${provider.name}, I found you through Lumio, it's an app for friends to refer ${provider.serviceType.toLowerCase()} they like. I would like to inquire about your ${provider.serviceType.toLowerCase()} services.`;
     
     // Always fetch provider details to get whatsapp_intent

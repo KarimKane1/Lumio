@@ -136,6 +136,27 @@ export default function ConnectionProfile({ connection, onBack }: ConnectionProf
   }));
 
   const handleWhatsAppContact = async (provider: ServiceProvider) => {
+    // Track the contact click event
+    try {
+      await fetch('/api/track-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'contact_click',
+          payload: {
+            provider_id: provider.id,
+            provider_name: provider.name,
+            service_type: provider.serviceType,
+            contact_method: 'whatsapp',
+            user_id: connection?.id, // Track which user clicked
+            connection_name: connection?.name
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track contact click:', error);
+    }
+    
     const message = `Hi ${provider.name}, I found you through ${connection.name} on Lumio, it's an app for friends to refer ${provider.serviceType.toLowerCase()} they like. I would like to inquire about your ${provider.serviceType.toLowerCase()} services.`;
     
     // Use whatsapp_intent if available

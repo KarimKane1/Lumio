@@ -7,55 +7,47 @@ import {
   Users, 
   Briefcase, 
   TrendingUp, 
-  Eye, 
-  MousePointer, 
-  Star,
   Activity,
-  Calendar
+  MessageCircle,
+  RefreshCw
 } from 'lucide-react';
 import UserGrowthChart from '../../../components/admin/UserGrowthChart';
 
 interface KPIData {
   totalUsers: number;
-  totalProviders: number;
   seekers: number;
   providers: number;
-  newUsers7d: number;
-  activeUsersDAU: number;
   activeUsersWAU: number;
-  activeUsersMAU: number;
-  providerViews7d: number;
+  newProviders7d: number;
   contactClicks7d: number;
-  avgRecommendationsPerProvider: number;
-  userGrowthData: Array<{ date: string; count: number }>;
-  activityData: Array<{ date: string; dau: number; wau: number }>;
-  // Percentage changes
-  totalUsersChange: number;
-  totalProvidersChange: number;
-  newUsers7dChange: number;
-  activeUsersDAUChange: number;
-  providerViews7dChange: number;
-  contactClicks7dChange: number;
+  newUsers7d: number;
 }
 
 export default function AdminDashboard() {
   const [kpiData, setKpiData] = useState<KPIData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchKPIData();
   }, []);
 
-  const fetchKPIData = async () => {
+  const fetchKPIData = async (isRefresh = false) => {
     try {
-      const response = await fetch('/api/admin/kpis');
+      if (isRefresh) setRefreshing(true);
+      const response = await fetch(`/api/admin/kpis?t=${Date.now()}`);
       const data = await response.json();
       setKpiData(data);
     } catch (error) {
       console.error('Failed to fetch KPI data:', error);
     } finally {
       setLoading(false);
+      if (isRefresh) setRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchKPIData(true);
   };
 
   if (loading) {
@@ -80,50 +72,37 @@ export default function AdminDashboard() {
     {
       title: 'Total Users',
       value: kpiData?.totalUsers || 0,
+      subtitle: 'All platform users',
       icon: Users,
       color: 'blue',
-      change: `+${kpiData?.totalUsersChange || 0}%`,
-      changeType: 'positive' as const,
     },
     {
-      title: 'Seekers',
-      value: kpiData?.seekers || 0,
-      icon: Users,
-      color: 'blue',
-      change: `+${kpiData?.totalUsersChange || 0}%`,
-      changeType: 'positive' as const,
-    },
-    {
-      title: 'Providers',
-      value: kpiData?.totalProviders || 0,
-      icon: Briefcase,
-      color: 'green',
-      change: `+${kpiData?.totalProvidersChange || 0}%`,
-      changeType: 'positive' as const,
-    },
-    {
-      title: 'New Users (7d)',
-      value: kpiData?.newUsers7d || 0,
-      icon: TrendingUp,
-      color: 'purple',
-      change: `+${kpiData?.newUsers7dChange || 0}%`,
-      changeType: 'positive' as const,
-    },
-    {
-      title: 'Active Users (DAU)',
-      value: kpiData?.activeUsersDAU || 0,
+      title: 'Weekly Active Users',
+      value: kpiData?.activeUsersWAU || 0,
+      subtitle: 'Active in last 7 days',
       icon: Activity,
       color: 'orange',
-      change: `+${kpiData?.activeUsersDAUChange || 0}%`,
-      changeType: 'positive' as const,
     },
     {
-      title: 'Provider Views (7d)',
-      value: kpiData?.providerViews7d || 0,
-      icon: Eye,
+      title: 'Providers Added',
+      value: kpiData?.newProviders7d || 0,
+      subtitle: 'Last 7 days',
+      icon: Briefcase,
+      color: 'green',
+    },
+    {
+      title: 'Contact Clicks',
+      value: kpiData?.contactClicks7d || 0,
+      subtitle: 'Last 7 days',
+      icon: MessageCircle,
+      color: 'purple',
+    },
+    {
+      title: 'New Users',
+      value: kpiData?.newUsers7d || 0,
+      subtitle: 'Last 7 days',
+      icon: TrendingUp,
       color: 'indigo',
-      change: `+${kpiData?.providerViews7dChange || 0}%`,
-      changeType: 'positive' as const,
     },
   ];
 
@@ -134,128 +113,59 @@ export default function AdminDashboard() {
       purple: 'bg-purple-50 text-purple-600',
       orange: 'bg-orange-50 text-orange-600',
       indigo: 'bg-indigo-50 text-indigo-600',
-      pink: 'bg-pink-50 text-pink-600',
     };
     return colors[color as keyof typeof colors] || colors.blue;
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Overview of your platform&apos;s performance</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">Overview of your platform&apos;s performance</p>
+          <p className="text-xs text-gray-500 mt-1">All timeframes are "last 7 days" (rolling window, not calendar weeks)</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh Data'}
+        </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Core Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {kpiCards.map((kpi) => (
-          <div key={kpi.title} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{kpi.title}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{kpi.value.toLocaleString()}</p>
-                <div className="flex items-center mt-2">
-                  <span className={`text-sm font-medium ${
-                    kpi.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {kpi.change}
+          <div key={kpi.title} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-2 rounded-lg ${getColorClasses(kpi.color)}`}>
+                <kpi.icon className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 mb-1">{kpi.value.toLocaleString()}</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">{kpi.title}</p>
+              <p className="text-xs text-gray-500">{kpi.subtitle}</p>
+              {kpi.title === 'Total Users' && (
+                <div className="mt-2 flex gap-2 text-xs">
+                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                    {kpiData?.seekers || 0} seekers
                   </span>
-                  <span className="text-sm text-gray-500 ml-1">vs last week</span>
+                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                    {kpiData?.providers || 0} providers
+                  </span>
                 </div>
-              </div>
-              <div className={`p-3 rounded-lg ${getColorClasses(kpi.color)}`}>
-                <kpi.icon className="w-6 h-6" />
-              </div>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Additional Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Active Users Metrics */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Users</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Calendar className="w-5 h-5 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-600">Daily Active Users</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">
-                {kpiData?.activeUsersDAU || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Calendar className="w-5 h-5 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-600">Weekly Active Users</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">
-                {kpiData?.activeUsersWAU || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Calendar className="w-5 h-5 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-600">Monthly Active Users</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">
-                {kpiData?.activeUsersMAU || 0}
-              </span>
-            </div>
-          </div>
-        </div>
+      {/* Growth Chart */}
+      <UserGrowthChart />
 
-        {/* Provider Metrics */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Provider Performance</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Star className="w-5 h-5 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-600">Avg Recommendations per Provider</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">
-                {kpiData?.avgRecommendationsPerProvider?.toFixed(1) || '0.0'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Eye className="w-5 h-5 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-600">Profile Views (7d)</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">
-                {kpiData?.providerViews7d || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <MousePointer className="w-5 h-5 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-600">Contact Clicks (7d)</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">
-                {kpiData?.contactClicks7d || 0}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 gap-6">
-        <UserGrowthChart />
-        
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Activity Trends</h3>
-          <div className="h-64 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <Activity className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-              <p>DAU/WAU trends chart will be implemented</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
