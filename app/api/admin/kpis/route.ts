@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '../../../../lib/supabase/server';
-import { getUserCounts } from '../../../../lib/userCounting';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -9,8 +8,29 @@ export async function GET() {
   try {
     const supabase = supabaseServer();
 
-    // Get accurate user counts using shared logic
-    const { totalUsers, seekers, providers } = await getUserCounts(supabase);
+    // Get accurate user counts
+    const { data: allUsers } = await supabase
+      .from('users')
+      .select('id, phone_e164, user_type');
+    
+    // Deduplicate users by phone_e164
+    const uniqueUsers = new Map();
+    allUsers?.forEach(user => {
+      if (user.phone_e164) {
+        uniqueUsers.set(user.phone_e164, user);
+      }
+    });
+    const usersWithRoles = Array.from(uniqueUsers.values());
+    
+    // Count seekers (users with explicit user_type or no recommendations)
+    const seekers = usersWithRoles.filter(u => u.user_type === 'seeker').length;
+    
+    // Count providers from provider table
+    const { count: providers } = await supabase
+      .from('provider')
+      .select('*', { count: 'exact', head: true });
+    
+    const totalUsers = seekers + (providers || 0);
     
     console.log('Dashboard - User counts:', { totalUsers, seekers, providers });
 
