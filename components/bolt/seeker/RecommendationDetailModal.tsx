@@ -100,9 +100,7 @@ export default function RecommendationDetailModal({ recommendation, onClose, onE
             provider_id: (recommendation as any).providerId || recommendation.id,
             provider_name: recommendation.name,
             service_type: recommendation.serviceType,
-            contact_method: 'whatsapp',
-            user_id: user?.id,
-            user_name: user?.name
+            contact_method: 'whatsapp'
           }
         })
       });
