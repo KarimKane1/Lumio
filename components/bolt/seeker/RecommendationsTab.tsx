@@ -88,7 +88,12 @@ export default function RecommendationsTab() {
       'quality.expensive': t('recs.expensive'),
       'quality.limitedAvailability': t('recs.limitedAvailability'),
       'quality.punctuality': t('recs.punctuality'),
-      'quality.communication': t('recs.communication')
+      'quality.communication': t('recs.communication'),
+      // New watchFor translation key mappings
+      'watchFor.expensive': t('watchFor.expensive'),
+      'watchFor.limitedAvailability': t('watchFor.limitedAvailability'),
+      'watchFor.punctuality': t('watchFor.punctuality'),
+      'watchFor.communication': t('watchFor.communication')
     };
     return qualityMap[quality] || quality;
   };

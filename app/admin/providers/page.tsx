@@ -10,6 +10,7 @@ interface Provider {
   name: string;
   service_type: string;
   city: string;
+  neighborhood?: string;
   created_at: string;
   photo_url: string;
   owner_user_id: string;
@@ -241,6 +242,11 @@ export default function AdminProviders() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                         {provider.city || 'N/A'}
+                        {provider.neighborhood && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {provider.neighborhood}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                         {provider.phone_e164 || 'N/A'}
@@ -331,6 +337,7 @@ export default function AdminProviders() {
                   name: formData.get('name'),
                   service_type: formData.get('service_type'),
                   city: formData.get('city'),
+                  neighborhood: formData.get('neighborhood') || null,
                 };
 
                 // Only add phone if the phone number field is not empty
@@ -508,7 +515,8 @@ export default function AdminProviders() {
                     body: JSON.stringify({
                       name: formData.get('name'),
                       service_type: formData.get('service_type'),
-                      city: 'Dakar', // Default city
+                      city: formData.get('city'),
+                      neighborhood: formData.get('neighborhood') || null,
                       phone: fullPhone,
                       owner_user_id: null, // No owner
                     }),
@@ -550,6 +558,51 @@ export default function AdminProviders() {
                       <option value="hvac">HVAC</option>
                       <option value="carpenter">Carpenter</option>
                       <option value="handyman">Handyman</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-black text-gray-900">City</label>
+                    <select
+                      name="city"
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                    >
+                      <option value="Dakar">Dakar</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-black text-gray-900">Neighborhood (Optional)</label>
+                    <select
+                      name="neighborhood"
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                    >
+                      <option value="">Select neighborhood</option>
+                      <option value="Plateau">Plateau</option>
+                      <option value="Mermoz">Mermoz</option>
+                      <option value="Fann">Fann</option>
+                      <option value="Ouakam">Ouakam</option>
+                      <option value="Yoff">Yoff</option>
+                      <option value="Parcelles Assainies">Parcelles Assainies</option>
+                      <option value="Liberté 6">Liberté 6</option>
+                      <option value="Liberté 5">Liberté 5</option>
+                      <option value="Liberté 4">Liberté 4</option>
+                      <option value="Liberté 3">Liberté 3</option>
+                      <option value="Liberté 2">Liberté 2</option>
+                      <option value="Liberté 1">Liberté 1</option>
+                      <option value="Dakar-Plateau">Dakar-Plateau</option>
+                      <option value="Almadies">Almadies</option>
+                      <option value="Ngor">Ngor</option>
+                      <option value="Virage">Virage</option>
+                      <option value="Sicap">Sicap</option>
+                      <option value="Point E">Point E</option>
+                      <option value="Fass">Fass</option>
+                      <option value="Colobane">Colobane</option>
+                      <option value="Medina">Medina</option>
+                      <option value="Gueule Tapée">Gueule Tapée</option>
+                      <option value="Castors">Castors</option>
+                      <option value="HLM">HLM</option>
+                      <option value="Dieuppeul">Dieuppeul</option>
+                      <option value="Dakar-ville">Dakar-ville</option>
                     </select>
                   </div>
                   <div>

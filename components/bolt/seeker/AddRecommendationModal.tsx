@@ -189,7 +189,7 @@ export default function AddRecommendationModal({ onClose }: AddRecommendationMod
       qualities: prev.qualities.includes(quality)
         ? prev.qualities.filter(q => q !== quality)
         : prev.qualities.length >= maxQualities
-          ? (setLimitMsg(`Select up to ${maxQualities} items for What You Liked`), prev.qualities)
+          ? (setLimitMsg(`Select up to ${maxQualities} items for Pros`), prev.qualities)
           : [...prev.qualities, quality]
     }));
   };
@@ -200,7 +200,7 @@ export default function AddRecommendationModal({ onClose }: AddRecommendationMod
       watchFor: prev.watchFor.includes(item)
         ? prev.watchFor.filter(w => w !== item)
         : prev.watchFor.length >= maxWatch
-          ? (setLimitMsg(`Select up to ${maxWatch} items for Things to Watch For`), prev.watchFor)
+          ? (setLimitMsg(`Select up to ${maxWatch} items for Cons`), prev.watchFor)
           : [...prev.watchFor, item]
     }));
   };
