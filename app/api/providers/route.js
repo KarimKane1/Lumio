@@ -64,6 +64,7 @@ export async function GET(req) {
   
   // First, get providers recommended by user's network connections
   let networkRecommendedProviders = [];
+  let connectionIds = [];
   if (user?.id) {
     // Get user's connections - handle both schema versions
     let connections, connectionError;
@@ -95,7 +96,7 @@ export async function GET(req) {
     }
     
     // Handle both schema versions
-    const connectionIds = connections?.map(c => {
+    connectionIds = connections?.map(c => {
       if (c.user_a_id !== undefined) {
         // New schema
         return c.user_a_id === user.id ? c.user_b_id : c.user_a_id;
@@ -199,8 +200,7 @@ export async function GET(req) {
   }
   if (city) otherQuery = otherQuery.eq('city', city);
   
-  // Apply pagination to other providers
-  otherQuery = otherQuery.range(from, to);
+  // Get all other providers (without pagination first)
   const { data: otherData, error } = await otherQuery;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -216,48 +216,7 @@ export async function GET(req) {
   // Apply pagination to the combined list
   const paginatedProviders = allProviders.slice(from, to + 1);
 
-  // Get connection IDs for filtering recommenders (reuse the same logic)
-  let connectionIds = [];
-  if (user?.id) {
-    // Reuse the same connection logic as above
-    let connections, connectionError;
-    
-    // Try the new schema first (user_a_id, user_b_id)
-    const { data: newConnections, error: newError } = await supabase
-      .from('connection')
-      .select('user_a_id,user_b_id')
-      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`);
-    
-    if (newError && newError.message.includes('column') && newError.message.includes('does not exist')) {
-      // Fall back to old schema (user_id, connected_user_id)
-      const { data: oldConnections, error: oldError } = await supabase
-        .from('connection')
-        .select('connected_user_id')
-        .eq('user_id', user.id)
-        .eq('status', 'accepted');
-      connections = oldConnections;
-      connectionError = oldError;
-    } else {
-      connections = newConnections;
-      connectionError = newError;
-    }
-    
-    if (connectionError) {
-      console.error('Connection query error in recommenders filter:', connectionError);
-      connections = [];
-    }
-    
-    // Handle both schema versions
-    connectionIds = connections?.map(c => {
-      if (c.user_a_id !== undefined) {
-        // New schema
-        return c.user_a_id === user.id ? c.user_b_id : c.user_a_id;
-      } else {
-        // Old schema
-        return c.connected_user_id;
-      }
-    }).filter(Boolean) || [];
-  }
+  // Reuse connectionIds from the first query (already defined above)
   
   // networkProviderIds is already defined above
 
