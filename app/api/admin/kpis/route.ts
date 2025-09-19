@@ -28,7 +28,7 @@ export async function GET() {
     // Count providers from provider table
     const { count: providers } = await supabase
       .from('provider')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true }) as { count: number | null };
     
     const totalUsers = seekers + (providers || 0);
     
