@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '../../../../lib/supabase/server';
-import { getUserCounts } from '../../../../lib/userCounting';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -51,8 +50,31 @@ export async function GET(req: Request) {
         weekEnd.setDate(weekEnd.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
 
-        // Get accurate user counts up to this week using shared logic
-        const { totalUsers, seekers, providers } = await getUserCounts(supabase, weekEnd);
+        // Get accurate user counts up to this week
+        const { data: allUsers } = await supabase
+          .from('users')
+          .select('id, phone_e164, user_type')
+          .lte('created_at', weekEnd.toISOString());
+        
+        // Deduplicate users by phone_e164
+        const uniqueUsers = new Map();
+        allUsers?.forEach(user => {
+          if (user.phone_e164) {
+            uniqueUsers.set(user.phone_e164, user);
+          }
+        });
+        const usersWithRoles = Array.from(uniqueUsers.values());
+        
+        // Count seekers (users with explicit user_type)
+        const seekers = usersWithRoles.filter(u => u.user_type === 'seeker').length;
+        
+        // Count providers from provider table up to this week
+        const { count: providers } = await supabase
+          .from('provider')
+          .select('*', { count: 'exact', head: true })
+          .lte('created_at', weekEnd.toISOString()) as { count: number | null };
+        
+        const totalUsers = seekers + (providers || 0);
 
         data.push({
           date: weekStart.toISOString().split('T')[0],
