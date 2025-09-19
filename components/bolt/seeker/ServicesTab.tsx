@@ -28,6 +28,16 @@ export default function ServicesTab() {
   const liveProviders = (data?.items as any[]) || [];
   
   // Debug: Log the raw provider data
+  console.log('ServicesTab - Raw API data:', {
+    liveProviders: liveProviders.length,
+    providers: liveProviders.map(p => ({ 
+      id: p.id, 
+      name: p.name, 
+      isNetworkRecommended: p.isNetworkRecommended,
+      recommenders: p.recommenders?.length || 0
+    }))
+  });
+  
   // Map providers from API response
   const mappedLive = liveProviders.map((p: any) => ({
     id: p.id,
@@ -46,8 +56,8 @@ export default function ServicesTab() {
     watchFor: (p.top_watch || []).slice(0, 2),
   }));
   
-  // Show all providers (including user's own recommendations)
-  const allProviders = [...mappedLive, ...availableProviders];
+  // Show all providers (API should already return them in correct order)
+  const allProviders = mappedLive; // Remove availableProviders since API handles everything now
 
   // Get user's network connections
   const userConnections = (connectionsData as any)?.items || [];
@@ -91,6 +101,18 @@ export default function ServicesTab() {
       isNetworkRecommendation: networkRecommenders.length > 0,
       networkRecommenders: networkRecommenders
     };
+  }).sort((a, b) => {
+    // Network recommended providers first
+    if (a.isNetworkRecommendation && !b.isNetworkRecommendation) return -1;
+    if (!a.isNetworkRecommendation && b.isNetworkRecommendation) return 1;
+    
+    // If both are network recommended, sort by number of network recommenders
+    if (a.isNetworkRecommendation && b.isNetworkRecommendation) {
+      return b.networkRecommenders.length - a.networkRecommenders.length;
+    }
+    
+    // Otherwise keep original order
+    return 0;
   });
 
   const allCategories = [
@@ -133,6 +155,7 @@ export default function ServicesTab() {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
+
 
       {/* Loading Skeleton */}
       {isLoading && (

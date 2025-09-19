@@ -62,142 +62,13 @@ export async function GET(req) {
   // Get the current user to filter recommendations by network
   const { data: { user } } = await supabase.auth.getUser();
   
-  // First, get providers recommended by user's network connections
-  let networkRecommendedProviders = [];
-  let connectionIds = [];
-  if (user?.id) {
-    // Get user's connections - handle both schema versions
-    let connections, connectionError;
-    
-    // Try the new schema first (user_a_id, user_b_id)
-    const { data: newConnections, error: newError } = await supabase
-      .from('connection')
-      .select('user_a_id,user_b_id')
-      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`);
-    
-    if (newError && newError.message.includes('column') && newError.message.includes('does not exist')) {
-      // Fall back to old schema (user_id, connected_user_id)
-      console.log('Providers API: Falling back to old schema (user_id, connected_user_id)');
-      const { data: oldConnections, error: oldError } = await supabase
-        .from('connection')
-        .select('connected_user_id')
-        .eq('user_id', user.id)
-        .eq('status', 'accepted');
-      connections = oldConnections;
-      connectionError = oldError;
-    } else {
-      connections = newConnections;
-      connectionError = newError;
-    }
-    
-    if (connectionError) {
-      console.error('Connection query error in providers API:', connectionError);
-      connections = [];
-    }
-    
-    // Handle both schema versions
-    connectionIds = connections?.map(c => {
-      if (c.user_a_id !== undefined) {
-        // New schema
-        return c.user_a_id === user.id ? c.user_b_id : c.user_a_id;
-      } else {
-        // Old schema
-        return c.connected_user_id;
-      }
-    }).filter(Boolean) || [];
-    
-    console.log('Network recommendations debug:', {
-      userId: user.id,
-      connections: connections?.length || 0,
-      connectionIds: connectionIds
-    });
-    
-    if (connectionIds.length > 0) {
-      // Get providers recommended by connections
-      const { data: networkRecs } = await supabase
-        .from('recommendation')
-        .select('provider_id,recommender_user_id')
-        .in('recommender_user_id', connectionIds);
-      
-      console.log('Network recommendations found:', {
-        networkRecs: networkRecs?.length || 0,
-        recs: networkRecs
-      });
-      
-      const networkProviderIds = [...new Set(networkRecs?.map(r => r.provider_id) || [])];
-      
-      console.log('Network provider IDs:', networkProviderIds);
-      
-      if (networkProviderIds.length > 0) {
-        // Get network recommended providers with filters
-        let networkQuery = supabase
-          .from('provider')
-          .select('id,name,service_type,city,photo_url')
-          .in('id', networkProviderIds);
-        
-        if (q) networkQuery = networkQuery.ilike('name', `%${q}%`);
-        if (service) {
-          const slug = String(service).toLowerCase().replace(/[^a-z]+/g, '_');
-          const map = {
-            plumber: 'plumber',
-            cleaner: 'cleaner',
-            nanny: 'nanny',
-            electrician: 'electrician',
-            carpenter: 'carpenter',
-            hair: 'hair',
-            henna: 'henna',
-            chef: 'chef',
-            hvac: 'hvac',
-            handyman: 'handyman'
-          };
-          if (map[slug]) {
-            networkQuery = networkQuery.eq('service_type', map[slug]);
-          }
-        }
-        if (city) networkQuery = networkQuery.eq('city', city);
-        
-        const { data: networkData } = await networkQuery;
-        
-        // Count recommendations per provider and sort by count
-        const providerRecommendationCounts = new Map();
-        for (const rec of networkRecs || []) {
-          const count = providerRecommendationCounts.get(rec.provider_id) || 0;
-          providerRecommendationCounts.set(rec.provider_id, count + 1);
-        }
-        
-        // Sort network providers by recommendation count (highest first)
-        networkRecommendedProviders = (networkData || []).sort((a, b) => {
-          const countA = providerRecommendationCounts.get(a.id) || 0;
-          const countB = providerRecommendationCounts.get(b.id) || 0;
-          return countB - countA; // Higher count first
-        });
-        
-        console.log('Network recommended providers after filtering and sorting:', {
-          count: networkRecommendedProviders.length,
-          providers: networkRecommendedProviders.map(p => ({ 
-            id: p.id, 
-            name: p.name, 
-            service_type: p.service_type,
-            recommendationCount: providerRecommendationCounts.get(p.id) || 0
-          }))
-        });
-      }
-    }
-  }
-  
-  // Then get all other providers (excluding network recommended ones)
-  let otherProviders = [];
-  
-  let otherQuery = supabase
+  // Simple query to get all providers
+  let query = supabase
     .from('provider')
-    .select('id,name,service_type,city,photo_url');
+    .select('id,name,service_type,city,photo_url')
+    .order('created_at', { ascending: false }); // Order by newest first
   
-  if (networkRecommendedProviders.length > 0) {
-    const networkProviderIds = networkRecommendedProviders.map(p => p.id);
-    otherQuery = otherQuery.not('id', 'in', `(${networkProviderIds.join(',')})`);
-  }
-  
-  if (q) otherQuery = otherQuery.ilike('name', `%${q}%`);
+  if (q) query = query.ilike('name', `%${q}%`);
   if (service) {
     const slug = String(service).toLowerCase().replace(/[^a-z]+/g, '_');
     const map = {
@@ -213,35 +84,77 @@ export async function GET(req) {
       handyman: 'handyman'
     };
     if (map[slug]) {
-      otherQuery = otherQuery.eq('service_type', map[slug]);
+      query = query.eq('service_type', map[slug]);
     }
   }
-  if (city) otherQuery = otherQuery.eq('city', city);
+  if (city) query = query.eq('city', city);
   
-  // Get all other providers (without pagination first)
-  const { data: otherData, error } = await otherQuery;
+  // Apply pagination
+  query = query.range(from, to);
+  
+  const { data: providers, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Combine providers: network recommended first, then others (randomly shuffled)
-  const shuffledOthers = (otherData || []).sort(() => Math.random() - 0.5);
-  
-  // Deduplicate providers by ID to prevent duplicates
-  const networkProviderIds = networkRecommendedProviders.map(p => p.id);
-  const filteredOthers = shuffledOthers.filter(p => !networkProviderIds.includes(p.id));
-  
-  const allProviders = [...networkRecommendedProviders, ...filteredOthers];
-  
-  // Apply pagination to the combined list
-  const paginatedProviders = allProviders.slice(from, to + 1);
+  // Get user's connections for network recommendations
+  let connectionIds = [];
+  if (user?.id) {
+    // Try new schema first
+    const { data: newConnections, error: newError } = await supabase
+      .from('connection')
+      .select('user_a_id,user_b_id')
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`);
+    
+    if (newError && newError.message.includes('column') && newError.message.includes('does not exist')) {
+      // Fall back to old schema
+      const { data: oldConnections } = await supabase
+        .from('connection')
+        .select('connected_user_id')
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
+      
+      connectionIds = oldConnections?.map(c => c.connected_user_id).filter(Boolean) || [];
+    } else {
+      connectionIds = newConnections?.map(c => 
+        c.user_a_id === user.id ? c.user_b_id : c.user_a_id
+      ).filter(Boolean) || [];
+    }
+  }
 
-  // Reuse connectionIds from the first query (already defined above)
-  
-  // networkProviderIds is already defined above
+  // Count network recommendations for each provider
+  const providerNetworkCounts = new Map();
+  if (connectionIds.length > 0) {
+    const { data: networkRecs } = await supabase
+      .from('recommendation')
+      .select('provider_id,recommender_user_id')
+      .in('recommender_user_id', connectionIds);
+    
+    for (const rec of networkRecs || []) {
+      const count = providerNetworkCounts.get(rec.provider_id) || 0;
+      providerNetworkCounts.set(rec.provider_id, count + 1);
+    }
+  }
+
+  // Sort: network recommended first, then others
+  const sortedProviders = (providers || []).sort((a, b) => {
+    const countA = providerNetworkCounts.get(a.id) || 0;
+    const countB = providerNetworkCounts.get(b.id) || 0;
+    
+    // Network recommended providers go first
+    if (countA > 0 && countB === 0) return -1;
+    if (countB > 0 && countA === 0) return 1;
+    
+    // If both are network recommended, sort by count
+    if (countA > 0 && countB > 0) {
+      return countB - countA;
+    }
+    
+    // Otherwise keep original order
+    return 0;
+  });
 
   // Attach simple aggregates: top 2 likes and notes per provider
-  // For performance, this is a naive per-row fetch for MVP
   const items = await Promise.all(
-    paginatedProviders.map(async (prov) => {
+    sortedProviders.map(async (prov) => {
       // Get likes from recommendation notes instead of votes table
       const { data: recs } = await supabase
         .from('recommendation')
@@ -281,10 +194,9 @@ export async function GET(req) {
         recommenders = recommenders.filter(rec => connectionIds.includes(rec.id));
       }
       
-      console.log('Provider:', prov.name, 'Network recommenders:', recommenders.map(r => ({ id: r.id, name: r.name })));
-      
-      // Check if this provider is network recommended
-      const isNetworkRecommended = networkProviderIds.includes(prov.id);
+      // Check if this provider is network recommended and get count
+      const networkRecommendationCount = providerNetworkCounts.get(prov.id) || 0;
+      const isNetworkRecommended = networkRecommendationCount > 0;
       
       return {
         ...prov,
@@ -292,25 +204,18 @@ export async function GET(req) {
         top_watch: topWatch.slice(0, 2),
         recommenders: recommenders,
         isNetworkRecommended: isNetworkRecommended,
-        networkRecommenders: isNetworkRecommended ? recommenders : []
+        networkRecommenders: isNetworkRecommended ? recommenders : [],
+        networkRecommendationCount: networkRecommendationCount
       };
     })
   );
-  console.log('Final API response:', {
-    totalProviders: allProviders.length,
-    networkRecommended: networkRecommendedProviders.length,
-    others: filteredOthers.length,
-    finalItems: items.length,
-    networkProviderNames: networkRecommendedProviders.map(p => p.name)
-  });
 
   return NextResponse.json({ 
     items, 
     page, 
     pageSize,
-    total: allProviders.length,
-    networkRecommended: networkRecommendedProviders.length,
-    others: filteredOthers.length
+    total: sortedProviders.length,
+    hasMore: items.length > pageSize
   });
 }
 
