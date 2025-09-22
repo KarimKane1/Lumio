@@ -117,40 +117,25 @@ export default function ServiceProviderCard({ provider, user, onViewDetails, onC
     
     // Track the contact click event
     try {
-      console.log('=== CONTACT CLICK START ===');
-      console.log('Provider:', provider.name, 'ID:', provider.id);
-      console.log('User:', user?.name, 'ID:', user?.id);
-      
-      const payload = {
-        provider_id: provider.id,
-        provider_name: provider.name,
-        service_type: provider.serviceType,
-        contact_method: 'whatsapp',
-        user_id: user?.id,
-        user_name: user?.name
-      };
-      
-      console.log('Sending payload:', payload);
-      
       const response = await fetch('/api/track-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventType: 'contact_click',
-          payload: payload
+          payload: {
+            provider_id: provider.id,
+            provider_name: provider.name,
+            service_type: provider.serviceType,
+            contact_method: 'whatsapp',
+            user_id: user?.id,
+            user_name: user?.name
+          }
         })
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      
-      if (response.ok) {
-        console.log('Contact click tracked successfully');
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to track contact click:', errorText);
+      if (!response.ok) {
+        console.error('Failed to track contact click:', await response.text());
       }
-      console.log('=== CONTACT CLICK END ===');
     } catch (error) {
       console.error('Failed to track contact click:', error);
     }

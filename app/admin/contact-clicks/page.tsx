@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MessageCircle, User, Briefcase, Calendar, Filter } from 'lucide-react';
+import ContactClicksChart from '../../../components/admin/ContactClicksChart';
 
 export const dynamic = 'force-dynamic';
 
@@ -172,6 +173,9 @@ export default function ContactClicksPage() {
           </div>
         </div>
       </div>
+
+      {/* Weekly Contact Clicks Chart */}
+      <ContactClicksChart />
 
       {/* Contact Clicks List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
