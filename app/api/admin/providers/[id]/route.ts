@@ -315,7 +315,8 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     if (existingProvider.owner_user_id) {
       console.log('Deleting provider owner from auth.users...');
       try {
-        const { error: authDeleteError } = await supabase.auth.admin.deleteUser(existingProvider.owner_user_id);
+        // Use the admin client directly since we have service role key
+        const { error: authDeleteError } = await (supabase as any).auth.admin.deleteUser(existingProvider.owner_user_id);
         if (authDeleteError) {
           console.error('Error deleting from auth.users:', authDeleteError);
           // Continue with provider deletion even if auth deletion fails
