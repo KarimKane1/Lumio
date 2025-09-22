@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 import { 
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
   const [kpiData, setKpiData] = useState<KPIData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     fetchKPIData();
@@ -138,11 +140,20 @@ export default function AdminDashboard() {
       {/* Core Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {kpiCards.map((kpi) => (
-          <div key={kpi.title} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <div 
+            key={kpi.title} 
+            className={`bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow ${
+              kpi.title === 'Contact Clicks' ? 'cursor-pointer hover:border-purple-300' : ''
+            }`}
+            onClick={kpi.title === 'Contact Clicks' ? () => router.push('/admin/contact-clicks') : undefined}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className={`p-2 rounded-lg ${getColorClasses(kpi.color)}`}>
                 <kpi.icon className="w-5 h-5" />
               </div>
+              {kpi.title === 'Contact Clicks' && (
+                <span className="text-xs text-purple-600 font-medium">Click for details</span>
+              )}
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900 mb-1">{kpi.value.toLocaleString()}</p>

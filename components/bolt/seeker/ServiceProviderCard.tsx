@@ -22,12 +22,13 @@ interface ServiceProvider {
 
 interface ServiceProviderCardProps {
   provider: ServiceProvider;
+  user?: any;
   onViewDetails: () => void;
   onContact?: () => void;
   isGuest?: boolean;
 }
 
-export default function ServiceProviderCard({ provider, onViewDetails, onContact, isGuest = false }: ServiceProviderCardProps) {
+export default function ServiceProviderCard({ provider, user, onViewDetails, onContact, isGuest = false }: ServiceProviderCardProps) {
   const { t } = useI18n();
   const { categories, getLocalizedCategoryName } = useCategories();
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
@@ -116,26 +117,40 @@ export default function ServiceProviderCard({ provider, onViewDetails, onContact
     
     // Track the contact click event
     try {
-      console.log('Tracking contact click for provider:', provider.name);
+      console.log('=== CONTACT CLICK START ===');
+      console.log('Provider:', provider.name, 'ID:', provider.id);
+      console.log('User:', user?.name, 'ID:', user?.id);
+      
+      const payload = {
+        provider_id: provider.id,
+        provider_name: provider.name,
+        service_type: provider.serviceType,
+        contact_method: 'whatsapp',
+        user_id: user?.id,
+        user_name: user?.name
+      };
+      
+      console.log('Sending payload:', payload);
+      
       const response = await fetch('/api/track-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventType: 'contact_click',
-          payload: {
-            provider_id: provider.id,
-            provider_name: provider.name,
-            service_type: provider.serviceType,
-            contact_method: 'whatsapp'
-          }
+          payload: payload
         })
       });
+      
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
       
       if (response.ok) {
         console.log('Contact click tracked successfully');
       } else {
-        console.error('Failed to track contact click:', await response.text());
+        const errorText = await response.text();
+        console.error('Failed to track contact click:', errorText);
       }
+      console.log('=== CONTACT CLICK END ===');
     } catch (error) {
       console.error('Failed to track contact click:', error);
     }

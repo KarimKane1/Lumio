@@ -25,6 +25,8 @@ export default function ServiceProviderCard({ provider, onViewDetails, onContact
             provider_name: provider.name,
             service_type: provider.service_type || provider.serviceType,
             contact_method: 'whatsapp'
+            // Note: This old component doesn't have user context, so user_id will be null
+            // This should be updated to use the new ServiceProviderCard.tsx component
           }
         })
       });
