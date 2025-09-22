@@ -128,8 +128,8 @@ export async function GET(request: NextRequest) {
       const provider = providerMap.get(providerId);
       
       // Use provider name from event_payload if available, otherwise from database lookup
-      const providerName = click.event_payload?.provider_name || provider?.name || 'Unknown Provider';
-      const serviceType = click.event_payload?.service_type || provider?.service_type || 'unknown';
+      const providerName = click.event_payload?.provider_name || (provider as any)?.name || 'Unknown Provider';
+      const serviceType = click.event_payload?.service_type || (provider as any)?.service_type || 'unknown';
       
       return {
         id: click.id,
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
         provider_name: providerName,
         provider_id: providerId,
         service_type: serviceType,
-        provider_city: provider?.city,
+        provider_city: (provider as any)?.city,
         clicked_at: click.created_at
       };
     });
