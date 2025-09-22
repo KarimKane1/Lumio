@@ -62,11 +62,11 @@ export async function GET(request: NextRequest) {
 
     // Get user and provider details separately
     // Check both user_id column and event_payload.user_id
-    const userIds = [...new Set([
+    const userIds = Array.from(new Set([
       ...(contactClicks || []).map((c: any) => c.user_id).filter(Boolean),
       ...(contactClicks || []).map((c: any) => c.event_payload?.user_id).filter(Boolean)
-    ])];
-    const providerIds = [...new Set((contactClicks || []).map((c: any) => c.event_payload?.provider_id).filter(Boolean))];
+    ]));
+    const providerIds = Array.from(new Set((contactClicks || []).map((c: any) => c.event_payload?.provider_id).filter(Boolean)));
 
     console.log('Extracted IDs:', {
       userIds,
