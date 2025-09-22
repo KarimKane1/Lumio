@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
       
       return {
         id: click.id,
-        seeker_name: user?.name || click.event_payload?.user_name || (effectiveUserId ? 'Unknown User' : 'Guest User'),
+        seeker_name: (user as any)?.name || click.event_payload?.user_name || (effectiveUserId ? 'Unknown User' : 'Guest User'),
         seeker_id: effectiveUserId,
         provider_name: providerName,
         provider_id: providerId,
