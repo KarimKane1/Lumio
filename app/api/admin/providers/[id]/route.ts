@@ -68,7 +68,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   try {
     const { id } = params;
     const body = await req.json();
-    const { name, service_type, city, phone, is_active, action } = body;
+    const { name, service_type, city, phone, is_active, action, neighborhoods, specialties } = body;
 
     const supabase = supabaseServer();
 
@@ -199,6 +199,57 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         return NextResponse.json({ error: 'Failed to update provider' }, { status: 500 });
       }
 
+      // Update neighborhoods if provided
+      if (neighborhoods && Array.isArray(neighborhoods)) {
+        // Delete existing neighborhoods
+        await supabase
+          .from('provider_neighborhoods')
+          .delete()
+          .eq('provider_id', id);
+
+        // Add new neighborhoods
+        if (neighborhoods.length > 0) {
+          const neighborhoodInserts = neighborhoods
+            .filter(n => n && n.trim())
+            .map(neighborhood => ({
+              provider_id: id,
+              neighborhood: neighborhood.trim(),
+              city: validation.sanitized.city
+            }));
+          
+          if (neighborhoodInserts.length > 0) {
+            await supabase
+              .from('provider_neighborhoods')
+              .insert(neighborhoodInserts);
+          }
+        }
+      }
+
+      // Update specialties if provided
+      if (specialties && Array.isArray(specialties)) {
+        // Delete existing specialties
+        await supabase
+          .from('provider_specialties')
+          .delete()
+          .eq('provider_id', id);
+
+        // Add new specialties
+        if (specialties.length > 0) {
+          const specialtyInserts = specialties
+            .filter(s => s && s.trim())
+            .map(specialty => ({
+              provider_id: id,
+              specialty: specialty.trim()
+            }));
+          
+          if (specialtyInserts.length > 0) {
+            await supabase
+              .from('provider_specialties')
+              .insert(specialtyInserts);
+          }
+        }
+      }
+
       return NextResponse.json({ provider: updatedProvider });
     }
   } catch (error) {
@@ -228,27 +279,52 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     console.log(`Found provider: ${existingProvider.name} (${existingProvider.service_type})`);
 
-    // Delete related data first
-    console.log('Deleting related recommendations...');
-    const { error: recError } = await supabase
-      .from('recommendation')
-      .delete()
-      .eq('provider_id', id);
+    // Delete ALL related data first (comprehensive cleanup)
+    console.log('Starting comprehensive provider deletion...');
+    
+    const cleanupPromises = [
+      // Delete recommendations
+      supabase.from('recommendation').delete().eq('provider_id', id),
+      // Delete provider attribute votes
+      supabase.from('provider_attribute_vote').delete().eq('provider_id', id),
+      // Delete provider neighborhoods
+      supabase.from('provider_neighborhoods').delete().eq('provider_id', id),
+      // Delete provider specialties
+      supabase.from('provider_specialties').delete().eq('provider_id', id),
+      // Delete provider name aliases
+      supabase.from('provider_name_alias').delete().eq('provider_id', id),
+      // Delete provider city sightings
+      supabase.from('provider_city_sighting').delete().eq('provider_id', id),
+      // Delete contact requests
+      supabase.from('contact_request').delete().eq('provider_id', id),
+      // Delete events related to this provider
+      supabase.from('events').delete().eq('event_payload->>provider_id', id),
+    ];
 
-    if (recError) {
-      console.error('Error deleting recommendations:', recError);
-      return NextResponse.json({ error: 'Failed to delete related recommendations' }, { status: 500 });
+    // Execute all cleanup operations
+    const cleanupResults = await Promise.all(cleanupPromises);
+    
+    // Check for any errors in cleanup
+    const cleanupErrors = cleanupResults.filter(result => result.error);
+    if (cleanupErrors.length > 0) {
+      console.error('Errors during cleanup:', cleanupErrors.map(e => e.error));
+      // Continue with deletion even if some cleanup fails
     }
 
-    console.log('Deleting provider attribute votes...');
-    const { error: voteError } = await supabase
-      .from('provider_attribute_vote')
-      .delete()
-      .eq('provider_id', id);
-
-    if (voteError) {
-      console.error('Error deleting provider attribute votes:', voteError);
-      return NextResponse.json({ error: 'Failed to delete related votes' }, { status: 500 });
+    // If provider has an owner_user_id, also delete from auth.users
+    if (existingProvider.owner_user_id) {
+      console.log('Deleting provider owner from auth.users...');
+      try {
+        const { error: authDeleteError } = await supabase.auth.admin.deleteUser(existingProvider.owner_user_id);
+        if (authDeleteError) {
+          console.error('Error deleting from auth.users:', authDeleteError);
+          // Continue with provider deletion even if auth deletion fails
+        } else {
+          console.log('Successfully deleted from auth.users');
+        }
+      } catch (error) {
+        console.error('Error deleting from auth.users:', error);
+      }
     }
 
     // Finally delete the provider

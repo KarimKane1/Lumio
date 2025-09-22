@@ -18,6 +18,7 @@ interface ServiceProvider {
   watchFor: string[];
   recommenders?: { id: string; name: string }[];
   networkRecommenders?: { id: string; name: string }[];
+  specialties?: { specialty: string }[];
 }
 
 interface ServiceProviderCardProps {
@@ -158,31 +159,48 @@ export default function ServiceProviderCard({ provider, user, onViewDetails, onC
 
   return (
     <div 
-      className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+      className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-4 md:p-6 hover:shadow-xl hover:border-indigo-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full group"
       onClick={handleCardClick}
     >
-      <div className="flex items-center mb-3 md:mb-4">
-        <div className="w-12 h-12 md:w-16 md:h-16 mr-3 md:mr-4 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-lg md:text-2xl">
-          {provider.name?.charAt(0) || 'P'}
-        </div>
-        <div className="flex-1">
-          <div>
-            <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1">{provider.name}</h3>
-            <p className="text-indigo-600 font-medium mb-1 text-sm md:text-base">{getTranslatedServiceType(provider.serviceType)}</p>
-            <div className="flex items-center text-gray-500 text-sm">
-              <MapPin className="w-4 h-4 mr-1" />
-              {provider.location}
+      <div className="flex-1 flex flex-col">
+        <div className="flex items-center mb-3 md:mb-4">
+          <div className="w-12 h-12 md:w-16 md:h-16 mr-3 md:mr-4 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-lg md:text-2xl font-semibold shadow-md group-hover:shadow-lg transition-shadow duration-300">
+            {provider.name?.charAt(0) || 'P'}
+          </div>
+          <div className="flex-1">
+            <div>
+              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2">{provider.name}</h3>
+              <div className="mb-2">
+                <p className="text-indigo-600 font-medium text-sm md:text-base mb-1">{getTranslatedServiceType(provider.serviceType)}</p>
+                {provider.specialties && provider.specialties.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {provider.specialties.slice(0, 3).map((specialty) => (
+                      <span key={specialty.specialty} className="bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 text-xs px-3 py-1.5 rounded-full border border-indigo-200 font-medium">
+                        {specialty.specialty}
+                      </span>
+                    ))}
+                    {provider.specialties.length > 3 && (
+                      <span className="text-xs text-gray-500 px-3 py-1.5 bg-gray-100 rounded-full font-medium">
+                        +{provider.specialties.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center text-gray-500 text-sm">
+                <MapPin className="w-4 h-4 mr-1" />
+                {provider.location}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Network Recommendations Section */}
       {!isGuest && (
         <div className="mb-3 md:mb-4">
           {provider.networkRecommenders && provider.networkRecommenders.length > 0 ? (
             <div 
-              className="bg-green-50 rounded-lg p-2 md:p-3 cursor-pointer hover:bg-green-100 transition-colors"
+              className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-3 md:p-4 cursor-pointer hover:from-green-100 hover:to-emerald-100 transition-all duration-200 border border-green-200 group-hover:border-green-300"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowRecommendationsModal(true);
@@ -190,8 +208,10 @@ export default function ServiceProviderCard({ provider, user, onViewDetails, onC
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Users className="w-4 h-4 text-green-600 mr-2" />
-                  <p className="text-sm text-green-800">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mr-3">
+                    <Users className="w-4 h-4 text-white" />
+                  </div>
+                  <p className="text-sm text-green-800 font-semibold">
                     <span className="font-medium">
                       {(() => {
                         const recommenders = provider.networkRecommenders;
@@ -207,12 +227,12 @@ export default function ServiceProviderCard({ provider, user, onViewDetails, onC
                     </span>
                   </p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-green-600" />
+                <ChevronRight className="w-4 h-4 text-green-600 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-lg p-2 md:p-3">
-              <p className="text-sm text-gray-600">
+            <div className="bg-gray-50 rounded-xl p-3 md:p-4 border border-gray-200">
+              <p className="text-sm text-gray-500 italic text-center">
                 {t('services.noNetworkRecommendations')}
               </p>
             </div>
@@ -234,10 +254,10 @@ export default function ServiceProviderCard({ provider, user, onViewDetails, onC
       {/* Qualities */}
       {provider.qualities.length > 0 && (
         <div className="mb-3 md:mb-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{t('recs.whatYouLiked')}</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-2 font-semibold">{t('recs.whatYouLiked')}</p>
           <div className="flex flex-wrap gap-2">
             {provider.qualities.map((quality) => (
-              <span key={quality} className="bg-green-50 text-green-700 text-xs md:text-sm px-2 md:px-3 py-1 rounded-full">
+              <span key={quality} className="bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 text-xs md:text-sm px-3 py-1.5 rounded-full border border-green-200 font-medium">
                 {getTranslatedQuality(quality)}
               </span>
             ))}
@@ -248,10 +268,10 @@ export default function ServiceProviderCard({ provider, user, onViewDetails, onC
       {/* Things to Watch For */}
       {provider.watchFor.length > 0 && (
         <div className="mb-3 md:mb-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{t('recs.watchFor')}</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-2 font-semibold">{t('recs.watchFor')}</p>
           <div className="flex flex-wrap gap-2">
             {provider.watchFor.map((item) => (
-              <span key={item} className="bg-orange-50 text-orange-700 text-xs md:text-sm px-2 md:px-3 py-1 rounded-full">
+              <span key={item} className="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 text-xs md:text-sm px-3 py-1.5 rounded-full border border-amber-200 font-medium">
                 {getTranslatedQuality(item)}
               </span>
             ))}
@@ -259,17 +279,18 @@ export default function ServiceProviderCard({ provider, user, onViewDetails, onC
         </div>
       )}
 
-      {/* Contact Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleWhatsAppContact();
-        }}
-        className="w-full py-2 md:py-3 px-3 md:px-4 rounded-lg transition-all duration-200 font-medium flex items-center justify-center text-sm md:text-base bg-green-600 text-white hover:bg-green-700"
-      >
-        <MessageCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-        Contact via WhatsApp
-      </button>
+        {/* Contact Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleWhatsAppContact();
+          }}
+          className="w-full py-3 md:py-4 px-4 md:px-6 rounded-xl transition-all duration-300 font-semibold flex items-center justify-center text-sm md:text-base bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 hover:shadow-lg transform hover:-translate-y-0.5 mt-auto"
+        >
+          <MessageCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+          Contact via WhatsApp
+        </button>
+      </div>
 
       <div className="text-center mt-2">
         <span className="text-xs md:text-sm text-gray-500">

@@ -65,7 +65,15 @@ export async function GET(req) {
   // Simple query to get all providers
   let query = supabase
     .from('provider')
-    .select('id,name,service_type,city,photo_url')
+    .select(`
+      id,
+      name,
+      service_type,
+      city,
+      photo_url,
+      neighborhoods:provider_neighborhoods(neighborhood),
+      specialties:provider_specialties(specialty)
+    `)
     .order('created_at', { ascending: false }); // Order by newest first
   
   if (q) query = query.ilike('name', `%${q}%`);

@@ -39,22 +39,32 @@ export default function ServicesTab() {
   });
   
   // Map providers from API response
-  const mappedLive = liveProviders.map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    serviceType: p.service_type || p.serviceType,
-    location: p.city || '',
-    avatar: p.photo_url || 'https://placehold.co/64x64',
-    phone: '',
-    recommendedBy: undefined,
-    // Use the recommenders from API (already filtered by network)
-    recommenders: (p.recommenders || [])
-      .map((r: any) => ({ id: r.id, name: r.name }))
-      .filter((r: any) => r.id !== user?.id), // Don't show current user's own recommendations
-    isNetworkRecommendation: p.isNetworkRecommended || false,
-    qualities: (p.top_likes || []).slice(0, 3),
-    watchFor: (p.top_watch || []).slice(0, 2),
-  }));
+  const mappedLive = liveProviders.map((p: any) => {
+    // Build location string with neighborhoods
+    let location = p.city || '';
+    if (p.neighborhoods && p.neighborhoods.length > 0) {
+      const neighborhoods = p.neighborhoods.map((n: any) => n.neighborhood).join(', ');
+      location = `${location} • ${neighborhoods}`;
+    }
+    
+    return {
+      id: p.id,
+      name: p.name,
+      serviceType: p.service_type || p.serviceType,
+      location: location,
+      avatar: p.photo_url || 'https://placehold.co/64x64',
+      phone: '',
+      recommendedBy: undefined,
+      // Use the recommenders from API (already filtered by network)
+      recommenders: (p.recommenders || [])
+        .map((r: any) => ({ id: r.id, name: r.name }))
+        .filter((r: any) => r.id !== user?.id), // Don't show current user's own recommendations
+      isNetworkRecommendation: p.isNetworkRecommended || false,
+      qualities: (p.top_likes || []).slice(0, 3),
+      watchFor: (p.top_watch || []).slice(0, 2),
+      specialties: p.specialties || [],
+    };
+  });
   
   // Show all providers (API should already return them in correct order)
   const allProviders = mappedLive; // Remove availableProviders since API handles everything now
@@ -138,7 +148,7 @@ export default function ServicesTab() {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 md:py-6">
       <div className="mb-4 md:mb-6">
         <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">{t('services.title') || 'Service Providers'}</h2>
         <p className="text-sm md:text-base text-gray-600 px-2 md:px-0">{t('services.subtitle') || 'Find trusted service providers through your network'}</p>
@@ -204,29 +214,31 @@ export default function ServicesTab() {
 
       {/* Service Providers List */}
       {!isLoading && (
-        <div className="space-y-2 md:space-y-4 px-2 md:px-0">
+        <div className="px-2 md:px-0">
           {filteredProviders.length > 0 ? (
-          (isGuest ? filteredProviders.slice(0, 3) : filteredProviders).map((provider) => (
-            <ServiceProviderCard 
-              key={provider.id} 
-              provider={provider} 
-              user={user}
-              onViewDetails={() => {
-                if (isGuest) {
-                  handleGuestAction();
-                } else {
-                  setSelectedProvider(provider);
-                }
-              }}
-              onContact={() => {
-                if (isGuest) {
-                  handleGuestAction();
-                }
-              }}
-              isGuest={isGuest}
-            />
-          ))
-        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {(isGuest ? filteredProviders.slice(0, 3) : filteredProviders).map((provider) => (
+                <ServiceProviderCard 
+                  key={provider.id} 
+                  provider={provider} 
+                  user={user}
+                  onViewDetails={() => {
+                    if (isGuest) {
+                      handleGuestAction();
+                    } else {
+                      setSelectedProvider(provider);
+                    }
+                  }}
+                  onContact={() => {
+                    if (isGuest) {
+                      handleGuestAction();
+                    }
+                  }}
+                  isGuest={isGuest}
+                />
+              ))}
+            </div>
+          ) : (
           <div className="text-center py-12 px-4">
             <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">

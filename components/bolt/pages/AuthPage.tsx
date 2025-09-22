@@ -433,7 +433,7 @@ export default function AuthPage() {
               <h1 className="text-4xl font-bold text-gray-900 ml-3">{t('app.title')}</h1>
             </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto px-4">
-              {t('landing.tagline') || 'Find and share reliable plumbers, electricians, HVAC, carpenter and handyman'}
+              {t('landing.tagline') || 'Find and share reliable plumbers, electricians, HVAC specialists, carpenters and handymen'}
             </p>
           </div>
 

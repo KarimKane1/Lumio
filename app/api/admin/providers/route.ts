@@ -78,7 +78,9 @@ export async function GET(req: Request) {
       .from('provider')
       .select(`
         *,
-        recommendation_count:recommendation(count)
+        recommendation_count:recommendation(count),
+        neighborhoods:provider_neighborhoods(neighborhood),
+        specialties:provider_specialties(specialty)
       `, { count: 'exact' })
       .order('created_at', { ascending: false });
 
@@ -140,7 +142,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, service_type, city, phone, owner_user_id } = body;
+    const { name, service_type, city, phone, owner_user_id, neighborhoods, specialties } = body;
 
     // Validate required fields (city and owner_user_id are optional)
     if (!name || !service_type || !phone) {
@@ -229,6 +231,39 @@ export async function POST(req: Request) {
     if (error) {
       console.error('Error creating provider:', error);
       return NextResponse.json({ error: 'Failed to create provider' }, { status: 500 });
+    }
+
+    // Add neighborhoods if provided
+    if (neighborhoods && Array.isArray(neighborhoods) && neighborhoods.length > 0) {
+      const neighborhoodInserts = neighborhoods
+        .filter(n => n && n.trim())
+        .map(neighborhood => ({
+          provider_id: provider.id,
+          neighborhood: neighborhood.trim(),
+          city: city || 'Dakar'
+        }));
+      
+      if (neighborhoodInserts.length > 0) {
+        await supabase
+          .from('provider_neighborhoods')
+          .insert(neighborhoodInserts);
+      }
+    }
+
+    // Add specialties if provided
+    if (specialties && Array.isArray(specialties)) {
+      const specialtyInserts = specialties
+        .filter(s => s && s.trim())
+        .map(specialty => ({
+          provider_id: provider.id,
+          specialty: specialty.trim()
+        }));
+      
+      if (specialtyInserts.length > 0) {
+        await supabase
+          .from('provider_specialties')
+          .insert(specialtyInserts);
+      }
     }
 
     return NextResponse.json({ provider }, { status: 201 });

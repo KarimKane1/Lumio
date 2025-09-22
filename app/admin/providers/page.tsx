@@ -17,6 +17,8 @@ interface Provider {
   recommendation_count: number;
   phone?: string;
   phone_e164?: string;
+  neighborhoods?: { neighborhood: string }[];
+  specialties?: { specialty: string }[];
 }
 
 export default function AdminProviders() {
@@ -242,9 +244,14 @@ export default function AdminProviders() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                         {provider.city || 'N/A'}
-                        {provider.neighborhood && (
+                        {provider.neighborhoods && provider.neighborhoods.length > 0 && (
                           <div className="text-xs text-gray-500 mt-1">
-                            {provider.neighborhood}
+                            {provider.neighborhoods.map(n => n.neighborhood).join(', ')}
+                          </div>
+                        )}
+                        {provider.specialties && provider.specialties.length > 0 && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            Specialty: {provider.specialties.map(s => s.specialty).join(', ')}
                           </div>
                         )}
                       </td>
@@ -332,12 +339,23 @@ export default function AdminProviders() {
                 const phoneNumber = formData.get('phoneNumber') as string;
                 const fullPhone = countryCode + phoneNumber;
 
+                // Parse specialties from comma-separated input
+                const specialtiesInput = formData.get('specialties') as string;
+                const specialties = specialtiesInput 
+                  ? specialtiesInput.split(',').map(s => s.trim()).filter(s => s)
+                  : [];
+
+                // Parse multiple neighborhoods
+                const neighborhoodsInput = formData.getAll('neighborhoods') as string[];
+                const neighborhoods = neighborhoodsInput.filter(n => n && n.trim());
+
                 // Only include phone if a number was actually entered
                 const updateData: any = {
                   name: formData.get('name'),
                   service_type: formData.get('service_type'),
                   city: formData.get('city'),
-                  neighborhood: formData.get('neighborhood') || null,
+                  neighborhoods: neighborhoods,
+                  specialties: specialties,
                 };
 
                 // Only add phone if the phone number field is not empty
@@ -373,7 +391,7 @@ export default function AdminProviders() {
                       type="text"
                       name="name"
                       defaultValue={selectedProvider.name}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     />
                   </div>
                   <div>
@@ -381,7 +399,7 @@ export default function AdminProviders() {
                     <select
                       name="service_type"
                       defaultValue={selectedProvider.service_type}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     >
                       <option value="plumber">Plumber</option>
                       <option value="electrician">Electrician</option>
@@ -396,8 +414,45 @@ export default function AdminProviders() {
                       type="text"
                       name="city"
                       defaultValue={selectedProvider.city}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-black text-gray-900">Neighborhoods (Optional)</label>
+                    <div className="mt-1 border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto bg-gray-50">
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          'Plateau', 'Mermoz', 'Fann', 'Ouakam', 'Yoff', 'Parcelles Assainies',
+                          'Liberté 6', 'Liberté 5', 'Liberté 4', 'Liberté 3', 'Liberté 2', 'Liberté 1',
+                          'Dakar-Plateau', 'Almadies', 'Ngor', 'Virage', 'Sicap', 'Point E',
+                          'Fass', 'Colobane', 'Medina', 'Gueule Tapée', 'Castors', 'HLM',
+                          'Dieuppeul', 'Dakar-ville'
+                        ].map((neighborhood) => (
+                          <label key={neighborhood} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-1 rounded">
+                            <input
+                              type="checkbox"
+                              name="neighborhoods"
+                              value={neighborhood}
+                              defaultChecked={selectedProvider.neighborhoods?.some((n: any) => n.neighborhood === neighborhood)}
+                              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            />
+                            <span className="text-sm text-gray-700">{neighborhood}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Select multiple neighborhoods by clicking the checkboxes</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-black text-gray-900">Specialties (Optional)</label>
+                    <input
+                      type="text"
+                      name="specialties"
+                      defaultValue={selectedProvider.specialties?.map((s: any) => s.specialty).join(', ') || ''}
+                      placeholder="e.g., Fridges, ACs, Water heaters (comma separated)"
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Separate multiple specialties with commas</p>
                   </div>
                   <div>
                     <label className="block text-sm font-black text-gray-900">Phone</label>
@@ -405,7 +460,7 @@ export default function AdminProviders() {
                       <select
                         name="countryCode"
                         defaultValue={selectedProvider.phone_e164?.startsWith('+221') ? '+221' : selectedProvider.phone_e164?.startsWith('+1') ? '+1' : '+221'}
-                        className="border border-gray-300 rounded-md px-3 py-2 w-20"
+                        className="border border-gray-300 rounded-md px-3 py-2 w-20 text-gray-900"
                       >
                         <option value="+221">+221</option>
                         <option value="+1">+1</option>
@@ -417,7 +472,7 @@ export default function AdminProviders() {
                         name="phoneNumber"
                         defaultValue={selectedProvider.phone_e164?.replace(/^\+\d{1,3}/, '') || ''}
                         placeholder="Phone number"
-                        className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                       />
                     </div>
                   </div>
@@ -509,6 +564,16 @@ export default function AdminProviders() {
                 }
 
                 try {
+                  // Parse specialties from comma-separated input
+                  const specialtiesInput = formData.get('specialties') as string;
+                  const specialties = specialtiesInput 
+                    ? specialtiesInput.split(',').map(s => s.trim()).filter(s => s)
+                    : [];
+
+                  // Parse multiple neighborhoods
+                  const neighborhoodsInput = formData.getAll('neighborhoods') as string[];
+                  const neighborhoods = neighborhoodsInput.filter(n => n && n.trim());
+
                   const response = await fetch('/api/admin/providers', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -516,7 +581,8 @@ export default function AdminProviders() {
                       name: formData.get('name'),
                       service_type: formData.get('service_type'),
                       city: formData.get('city'),
-                      neighborhood: formData.get('neighborhood') || null,
+                      neighborhoods: neighborhoods,
+                      specialties: specialties,
                       phone: fullPhone,
                       owner_user_id: null, // No owner
                     }),
@@ -571,39 +637,39 @@ export default function AdminProviders() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-black text-gray-900">Neighborhood (Optional)</label>
-                    <select
-                      name="neighborhood"
+                    <label className="block text-sm font-black text-gray-900">Neighborhoods (Optional)</label>
+                    <div className="mt-1 border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto bg-gray-50">
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          'Plateau', 'Mermoz', 'Fann', 'Ouakam', 'Yoff', 'Parcelles Assainies',
+                          'Liberté 6', 'Liberté 5', 'Liberté 4', 'Liberté 3', 'Liberté 2', 'Liberté 1',
+                          'Dakar-Plateau', 'Almadies', 'Ngor', 'Virage', 'Sicap', 'Point E',
+                          'Fass', 'Colobane', 'Medina', 'Gueule Tapée', 'Castors', 'HLM',
+                          'Dieuppeul', 'Dakar-ville'
+                        ].map((neighborhood) => (
+                          <label key={neighborhood} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-1 rounded">
+                            <input
+                              type="checkbox"
+                              name="neighborhoods"
+                              value={neighborhood}
+                              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            />
+                            <span className="text-sm text-gray-700">{neighborhood}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Select multiple neighborhoods by clicking the checkboxes</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-black text-gray-900">Specialties (Optional)</label>
+                    <input
+                      type="text"
+                      name="specialties"
+                      placeholder="e.g., Fridges, ACs, Water heaters (comma separated)"
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
-                    >
-                      <option value="">Select neighborhood</option>
-                      <option value="Plateau">Plateau</option>
-                      <option value="Mermoz">Mermoz</option>
-                      <option value="Fann">Fann</option>
-                      <option value="Ouakam">Ouakam</option>
-                      <option value="Yoff">Yoff</option>
-                      <option value="Parcelles Assainies">Parcelles Assainies</option>
-                      <option value="Liberté 6">Liberté 6</option>
-                      <option value="Liberté 5">Liberté 5</option>
-                      <option value="Liberté 4">Liberté 4</option>
-                      <option value="Liberté 3">Liberté 3</option>
-                      <option value="Liberté 2">Liberté 2</option>
-                      <option value="Liberté 1">Liberté 1</option>
-                      <option value="Dakar-Plateau">Dakar-Plateau</option>
-                      <option value="Almadies">Almadies</option>
-                      <option value="Ngor">Ngor</option>
-                      <option value="Virage">Virage</option>
-                      <option value="Sicap">Sicap</option>
-                      <option value="Point E">Point E</option>
-                      <option value="Fass">Fass</option>
-                      <option value="Colobane">Colobane</option>
-                      <option value="Medina">Medina</option>
-                      <option value="Gueule Tapée">Gueule Tapée</option>
-                      <option value="Castors">Castors</option>
-                      <option value="HLM">HLM</option>
-                      <option value="Dieuppeul">Dieuppeul</option>
-                      <option value="Dakar-ville">Dakar-ville</option>
-                    </select>
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Separate multiple specialties with commas</p>
                   </div>
                   <div>
                     <label className="block text-sm font-black text-gray-900">Phone</label>

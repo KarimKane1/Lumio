@@ -50,7 +50,7 @@ const en: Messages = {
   'auth.logoutWarning': 'Are you sure you want to logout? You will need to sign in again to access your account.',
   'auth.signupFailed': 'Sign up failed. Please try again.',
   'auth.signinFailed': 'Sign in failed. Please check credentials.',
-  'landing.tagline': 'Find and share reliable plumbers, electricians, HVAC, carpenter and handyman',
+  'landing.tagline': 'Find and share reliable plumbers, electricians, HVAC, carpenters and handymen',
   'landing.trusted': 'Find Providers',
   'landing.trustedText': 'Browse names, click to whatsapp or call directly',
   'landing.verified': 'Share Providers',
