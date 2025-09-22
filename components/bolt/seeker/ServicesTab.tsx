@@ -210,6 +210,7 @@ export default function ServicesTab() {
             <ServiceProviderCard 
               key={provider.id} 
               provider={provider} 
+              user={user}
               onViewDetails={() => {
                 if (isGuest) {
                   handleGuestAction();
